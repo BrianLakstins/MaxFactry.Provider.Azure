@@ -2,7 +2,7 @@
 <package  xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>    
     <id>MaxFactry.Provider.Azure</id>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
     <title>MaxFactry Provider Azure</title>
     <authors>Brian Lakstins</authors>
     <owners>brianlakstins</owners>
@@ -15,15 +15,15 @@
     <tags></tags>
 	  <dependencies>
 		  <group targetFramework="net452">
-			  <dependency id="MaxFactry.Core" version="1.0.3" />
-			  <dependency id="MaxFactry.Base" version="1.0.4" />
+			  <dependency id="MaxFactry.Core" version="1.0.4" />
+			  <dependency id="MaxFactry.Base" version="1.0.9" />
 			  <dependency id="MaxFactry.General" version="1.0.4" />
 			  <dependency id="MaxFactry.Provider.Core" version="1.0.4" />
 			  <dependency id="Newtonsoft.Json" version="12.0.3" />
 			  <dependency id="Hyak.Common" version="1.2.2" />
-			  <dependency id="Microsoft.ApplicationInsights" version="2.10.0" />
-			  <dependency id="Microsoft.ApplicationInsights.PerfCounterCollector" version="2.10.0" />
-			  <dependency id="Microsoft.ApplicationInsights.WindowsServer.TelemetryChannel" version="2.10.0" />
+			  <dependency id="Microsoft.ApplicationInsights" version="2.21.0" />
+			  <dependency id="Microsoft.ApplicationInsights.PerfCounterCollector" version="2.21.0" />
+			  <dependency id="Microsoft.ApplicationInsights.WindowsServer.TelemetryChannel" version="2.21.0" />
 			  <dependency id="Microsoft.Azure.Common" version="2.2.1" />
 			  <dependency id="Microsoft.Azure.Common.Dependencies" version="1.0.0" />
 			  <dependency id="Microsoft.Azure.KeyVault.Core" version="3.0.4" />
@@ -48,7 +48,7 @@
 			  <dependency id="Microsoft.WindowsAzure.Management.Sql" version="5.2.0" />
 			  <dependency id="Microsoft.WindowsAzure.Management.Storage" version="6.0.1" />
 			  <dependency id="Microsoft.WindowsAzure.Management.WebSites" version="4.0.0" />
-			  <dependency id="System.Diagnostics.DiagnosticSource" version="4.5.1" />
+			  <dependency id="System.Diagnostics.DiagnosticSource" version="5.0.1" />
 			  <dependency id="System.Spatial" version="5.8.4" />
 			  <dependency id="WindowsAzure.Storage" version="9.3.3" />
 		  </group>
