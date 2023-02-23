@@ -38,10 +38,18 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
     using System.IO;
     using MaxFactry.Core;
     using MaxFactry.Base.DataLayer;
+#if net4_72
+    using Azure.Core;
+    using Azure.Storage;
+    using Azure.Storage.Blobs;
+    using Microsoft.Azure.Storage;
+
+#else
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Auth;
     using Microsoft.WindowsAzure.Storage.Blob;
     using Microsoft.WindowsAzure.Storage.Table;
+#endif
 
     /// <summary>
     /// Provides session services using MaxFactryLibrary.

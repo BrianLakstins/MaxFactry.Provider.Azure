@@ -12,9 +12,18 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NuGet", "NuGet", "{28F65CFE-54AC-436B-A62B-9EAE86D4D234}"
 	ProjectSection(SolutionItems) = preProject
 		.nuget\MaxFactry.Provider.Azure.nuspec = .nuget\MaxFactry.Provider.Azure.nuspec
+		.nuget\nuget.config = .nuget\nuget.config
 		.nuget\package.bat = .nuget\package.bat
 		.nuget\readme.md = .nuget\readme.md
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaxFactry.Provider.AzureProvider-NF-4.7.2", "MaxFactry.Provider.AzureProvider-NF-4.7.2\MaxFactry.Provider.AzureProvider-NF-4.7.2.csproj", "{CE4E924A-1C3C-445F-B865-0BA9AFBEA944}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaxFactry.Provider.AzureProvider-NF-4.8", "MaxFactry.Provider.AzureProvider-NF-4.8\MaxFactry.Provider.AzureProvider-NF-4.8.csproj", "{55587861-8B4A-4964-929F-86F6ABC888A4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaxFactry.Provider.AzureProvider-NC-6.0", "MaxFactry.Provider.AzureProvider-NC-6.0\MaxFactry.Provider.AzureProvider-NC-6.0.csproj", "{C97F7E14-5E1E-483F-AAE0-EBB7E77233B7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaxFactry.Provider.AzureProvider-NC-3.1", "MaxFactry.Provider.AzureProvider-NC-3.1\MaxFactry.Provider.AzureProvider-NC-3.1.csproj", "{0EA7865A-40A5-45D4-AF41-1F8B521181C8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,6 +35,22 @@ Global
 		{EC9100D9-367B-441E-AB0D-9D0E3BD6E375}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EC9100D9-367B-441E-AB0D-9D0E3BD6E375}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EC9100D9-367B-441E-AB0D-9D0E3BD6E375}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE4E924A-1C3C-445F-B865-0BA9AFBEA944}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE4E924A-1C3C-445F-B865-0BA9AFBEA944}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE4E924A-1C3C-445F-B865-0BA9AFBEA944}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE4E924A-1C3C-445F-B865-0BA9AFBEA944}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55587861-8B4A-4964-929F-86F6ABC888A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55587861-8B4A-4964-929F-86F6ABC888A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55587861-8B4A-4964-929F-86F6ABC888A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55587861-8B4A-4964-929F-86F6ABC888A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C97F7E14-5E1E-483F-AAE0-EBB7E77233B7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C97F7E14-5E1E-483F-AAE0-EBB7E77233B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C97F7E14-5E1E-483F-AAE0-EBB7E77233B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C97F7E14-5E1E-483F-AAE0-EBB7E77233B7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0EA7865A-40A5-45D4-AF41-1F8B521181C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0EA7865A-40A5-45D4-AF41-1F8B521181C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0EA7865A-40A5-45D4-AF41-1F8B521181C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0EA7865A-40A5-45D4-AF41-1F8B521181C8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -2,7 +2,7 @@
 <package  xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>    
     <id>MaxFactry.Provider.Azure</id>
-    <version>1.0.6</version>
+    <version>1.0.7</version>
     <title>MaxFactry Provider Azure</title>
     <authors>Brian Lakstins</authors>
     <owners>brianlakstins</owners>
@@ -15,18 +15,15 @@
     <tags></tags>
 	  <dependencies>
 		  <group targetFramework="net452">
-			  <dependency id="MaxFactry.Core" version="1.0.5" />
-			  <dependency id="MaxFactry.Base" version="1.0.11" />
-			  <dependency id="MaxFactry.General" version="1.0.9" />
-			  <dependency id="MaxFactry.Provider.Core" version="1.0.5" />
-			  <dependency id="Newtonsoft.Json" version="13.0.1" />
+			  <dependency id="MaxFactry.Provider.Core" version="1.0.7" />
+			  <dependency id="Newtonsoft.Json" version="13.0.2" />
 			  <dependency id="Hyak.Common" version="1.2.2" />
 			  <dependency id="Microsoft.ApplicationInsights" version="2.21.0" />
 			  <dependency id="Microsoft.ApplicationInsights.PerfCounterCollector" version="2.21.0" />
 			  <dependency id="Microsoft.ApplicationInsights.WindowsServer.TelemetryChannel" version="2.21.0" />
 			  <dependency id="Microsoft.Azure.Common" version="2.2.1" />
 			  <dependency id="Microsoft.Azure.Common.Dependencies" version="1.0.0" />
-			  <dependency id="Microsoft.Azure.KeyVault.Core" version="3.0.4" />
+			  <dependency id="Microsoft.Azure.KeyVault.Core" version="3.0.5" />
 			  <dependency id="Microsoft.Bcl" version="1.1.10" />
 			  <dependency id="Microsoft.Bcl.Async" version="1.0.168" />
 			  <dependency id="Microsoft.Bcl.Build" version="1.0.21" />
