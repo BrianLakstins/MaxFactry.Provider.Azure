@@ -21,9 +21,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaxFactry.Provider.AzurePro
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaxFactry.Provider.AzureProvider-NF-4.8", "MaxFactry.Provider.AzureProvider-NF-4.8\MaxFactry.Provider.AzureProvider-NF-4.8.csproj", "{55587861-8B4A-4964-929F-86F6ABC888A4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaxFactry.Provider.AzureProvider-NC-6.0", "MaxFactry.Provider.AzureProvider-NC-6.0\MaxFactry.Provider.AzureProvider-NC-6.0.csproj", "{C97F7E14-5E1E-483F-AAE0-EBB7E77233B7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MaxFactry.Provider.AzureProvider-NC-6.0", "MaxFactry.Provider.AzureProvider-NC-6.0\MaxFactry.Provider.AzureProvider-NC-6.0.csproj", "{C97F7E14-5E1E-483F-AAE0-EBB7E77233B7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaxFactry.Provider.AzureProvider-NC-3.1", "MaxFactry.Provider.AzureProvider-NC-3.1\MaxFactry.Provider.AzureProvider-NC-3.1.csproj", "{0EA7865A-40A5-45D4-AF41-1F8B521181C8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MaxFactry.Provider.AzureProvider-NC-3.1", "MaxFactry.Provider.AzureProvider-NC-3.1\MaxFactry.Provider.AzureProvider-NC-3.1.csproj", "{0EA7865A-40A5-45D4-AF41-1F8B521181C8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

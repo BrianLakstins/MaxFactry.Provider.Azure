@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{EC9100D9-367B-441E-AB0D-9D0E3BD6E375}</ProjectGuid>
+    <ProjectGuid>{1DD69DEF-C8E5-496C-A412-308CAC299B0B}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MaxFactry.Provider.AzureProvider_NF_4._5._2</RootNamespace>
