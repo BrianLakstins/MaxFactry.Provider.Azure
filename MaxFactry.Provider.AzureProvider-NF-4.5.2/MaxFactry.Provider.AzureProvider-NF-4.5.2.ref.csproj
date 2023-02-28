@@ -2,7 +2,6 @@
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
-	  <SkipValidatePackageReferences>true</SkipValidatePackageReferences>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{EC9100D9-367B-441E-AB0D-9D0E3BD6E375}</ProjectGuid>
@@ -112,7 +111,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Bcl.Build">
       <Version>1.0.21</Version>
-	</PackageReference>
+    </PackageReference>
     <PackageReference Include="Microsoft.Data.Services.Client">
       <Version>5.8.4</Version>
     </PackageReference>

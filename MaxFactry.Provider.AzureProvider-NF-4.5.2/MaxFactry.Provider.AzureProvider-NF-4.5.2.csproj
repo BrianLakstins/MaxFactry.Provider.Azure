@@ -7,7 +7,7 @@
     <ProjectGuid>{EC9100D9-367B-441E-AB0D-9D0E3BD6E375}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MaxFactry.Provider.AzureProvider_NF_4._5._2</RootNamespace>
+    <RootNamespace>MaxFactry.Provider.AzureProvider</RootNamespace>
     <AssemblyName>MaxFactry.Provider.AzureProvider-NF-4.5.2</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
