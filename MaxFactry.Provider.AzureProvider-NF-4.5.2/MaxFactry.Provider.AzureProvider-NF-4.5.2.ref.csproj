@@ -113,7 +113,7 @@
       <Version>1.0.21</Version>
     </PackageReference>
     <PackageReference Include="Microsoft.Data.Services.Client">
-      <Version>5.8.4</Version>
+      <Version>5.8.5</Version>
     </PackageReference>
     <PackageReference Include="Microsoft.Net.Http">
       <Version>2.2.29</Version>
@@ -172,11 +172,11 @@
   <Target Name="AfterBuild">
   </Target>
   -->
-	<Target Name="SpicNSpan" AfterTargets="Clean">
-		<!-- common vars https://msdn.microsoft.com/en-us/library/c02as0cs.aspx?f=255&MSPPError=-2147217396 -->
-		<RemoveDir Directories="$(TargetDir)" />
-		<!-- bin -->
-		<RemoveDir Directories="$(ProjectDir)$(BaseIntermediateOutputPath)" />
-		<!-- obj -->
-	</Target>
+  <Target Name="SpicNSpan" AfterTargets="Clean">
+    <!-- common vars https://msdn.microsoft.com/en-us/library/c02as0cs.aspx?f=255&MSPPError=-2147217396 -->
+    <RemoveDir Directories="$(TargetDir)" />
+    <!-- bin -->
+    <RemoveDir Directories="$(ProjectDir)$(BaseIntermediateOutputPath)" />
+    <!-- obj -->
+  </Target>
 </Project>
