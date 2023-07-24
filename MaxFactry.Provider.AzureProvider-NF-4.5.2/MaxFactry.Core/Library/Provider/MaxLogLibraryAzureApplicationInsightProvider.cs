@@ -37,6 +37,7 @@
 // <change date="5/19/2020" author="Brian A. Lakstins" description="Fix for null values in log parameters">
 // <change date="6/5/2020" author="Brian A. Lakstins" description="Updated for change to base.">
 // <change date="7/7/2021" author="Brian A. Lakstins" description="Ignore static and debug logging because there will probably be too much.">
+// <change date="7/24/2023" author="Brian A. Lakstins" description="Add ConnectionString support.">
 // </changelog>
 #endregion
 
@@ -46,12 +47,10 @@ namespace MaxFactry.Core.Provider
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Reflection;
-    using System.Threading;
     using MaxFactry.Core;
     using Microsoft.ApplicationInsights;
     using Microsoft.ApplicationInsights.Extensibility;
     using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector;
-
 
     /// <summary>
     /// Azure Application Insights provider for the MaxFactory class to manage logging.
@@ -66,7 +65,13 @@ namespace MaxFactry.Core.Provider
 
         private string _sInstrumentationKey = null;
 
+        private string _sConnectionString = null;
+
         private PerformanceCollectorModule _oPerformanceModule;
+
+        public const string InstrumentationKeyConfigName = "InstrumentationKey";
+
+        public const string ConnectionStringConfigName = "ConnectionString";
 
         /// <summary>
         /// Initializes the provider.
@@ -75,8 +80,8 @@ namespace MaxFactry.Core.Provider
         /// <param name="loConfig">Configuration information.</param>
         public override void Initialize(string lsName, MaxIndex loConfig)
         {
-            string lsKey = this.GetConfigValue(loConfig, "InstrumentationKey") as string;
-            if (null != lsKey)
+            string lsKey = this.GetConfigValue(loConfig, InstrumentationKeyConfigName) as string;
+            if (!string.IsNullOrEmpty(lsKey))
             {
                 this._sInstrumentationKey = lsKey;
             }
@@ -84,14 +89,21 @@ namespace MaxFactry.Core.Provider
             {
                 this._sInstrumentationKey = TelemetryConfiguration.Active.InstrumentationKey;
             }
+
+            string lsConnectionString = this.GetConfigValue(loConfig, ConnectionStringConfigName) as string;
+            if (!string.IsNullOrEmpty(lsConnectionString))
+            {
+                this._sConnectionString = lsConnectionString;
+            }
+            
         }
 
         protected string InstrumentationKey
         {
             get
             {
-                string lsInstrumentationKey = MaxConfigurationLibrary.GetValue(MaxEnumGroup.Scope24, "InstrumentationKey") as string;
-                if (null != lsInstrumentationKey && lsInstrumentationKey.Length > 0)
+                string lsInstrumentationKey = MaxConfigurationLibrary.GetValue(MaxEnumGroup.Scope24, InstrumentationKeyConfigName) as string;
+                if (!string.IsNullOrEmpty(lsInstrumentationKey))
                 {
                     return lsInstrumentationKey;
                 }
@@ -100,33 +112,63 @@ namespace MaxFactry.Core.Provider
             }
         }
 
+        protected string ConnectionString
+        {
+            get
+            {
+                string lsConnectionString = MaxConfigurationLibrary.GetValue(MaxEnumGroup.Scope24, ConnectionStringConfigName) as string;
+                if (!string.IsNullOrEmpty(lsConnectionString))
+                {
+                    return lsConnectionString;
+                }
+
+                return this._sConnectionString;
+            }
+        }
+
         protected virtual TelemetryConfiguration TelemetryConfig
         {
             get
             {
-                string lsKey = this.InstrumentationKey;
-                if (!this._oTelemetryConfigIndex.ContainsKey(lsKey))
+                string lsConfigKey = string.Empty;
+                if (!string.IsNullOrEmpty(this.ConnectionString))
+                {
+                    lsConfigKey = "CS:" + this.ConnectionString;
+                }
+                else if (!string.IsNullOrEmpty(this.InstrumentationKey))
+                {
+                    lsConfigKey = "IK:" + this.InstrumentationKey;
+                }
+                if (!string.IsNullOrEmpty(lsConfigKey) && !this._oTelemetryConfigIndex.ContainsKey(lsConfigKey))
                 {
                     lock (_oLock)
                     {
-                        if (!this._oTelemetryConfigIndex.ContainsKey(lsKey))
+                        if (!this._oTelemetryConfigIndex.ContainsKey(lsConfigKey))
                         {
                             TelemetryConfiguration loConfig = TelemetryConfiguration.Active;
                             if (null != loConfig)
                             {
-                                loConfig.InstrumentationKey = lsKey;
+                                if (!string.IsNullOrEmpty(this.ConnectionString))
+                                {
+                                    loConfig.ConnectionString = this.ConnectionString;
+                                }
+                                else
+                                {
+                                    loConfig.InstrumentationKey = this.InstrumentationKey;
+                                }
+
                                 loConfig.TelemetryChannel.DeveloperMode = Debugger.IsAttached;
 #if DEBUG
                                 loConfig.TelemetryChannel.DeveloperMode = true;
 #endif
                             }
 
-                            this._oTelemetryConfigIndex.Add(lsKey, loConfig);
+                            this._oTelemetryConfigIndex.Add(lsConfigKey, loConfig);
                         }
                     }
                 }
 
-                return this._oTelemetryConfigIndex[lsKey];
+                return this._oTelemetryConfigIndex[lsConfigKey];
             }
         }
 
