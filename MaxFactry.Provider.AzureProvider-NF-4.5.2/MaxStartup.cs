@@ -34,6 +34,7 @@
 namespace MaxFactry.Provider.AzureProvider
 {
     using System;
+    using MaxFactry.Base.DataLayer.Provider;
     using MaxFactry.Core;
     using MaxFactry.Core.Provider;
 
@@ -86,36 +87,36 @@ namespace MaxFactry.Provider.AzureProvider
         /// <param name="loConfig">The configuration for the default repository provider.</param>
         public virtual void SetProviderConfiguration(MaxIndex loConfig)
         {
-            loConfig.Add(typeof(MaxFactry.Base.DataLayer.Provider.MaxDataContextAzureSqlProvider).Name, typeof(MaxFactry.Base.DataLayer.Provider.MaxDataContextAzureSqlProvider));
-            loConfig.Add(typeof(MaxFactry.Base.DataLayer.Provider.MaxDataContextAzureStorageProvider).Name, typeof(MaxFactry.Base.DataLayer.Provider.MaxDataContextAzureStorageProvider));
-            loConfig.Add(typeof(MaxFactry.Base.DataLayer.Provider.MaxDataContextAzureTableProvider).Name, typeof(MaxFactry.Base.DataLayer.Provider.MaxDataContextAzureTableProvider));
-            //// Run in the app MaxStartup with the some real keys or connection strings
-            this.SetProviderConfigurationInstrumentationKey(loConfig, string.Empty, string.Empty);
-            this.SetProviderConfigurationConnectionString(loConfig, string.Empty, string.Empty);
+            loConfig.Add(typeof(MaxDataContextAzureSqlProvider).Name, typeof(MaxDataContextAzureSqlProvider));
+            loConfig.Add(typeof(MaxDataContextAzureStorageProvider).Name, typeof(MaxDataContextAzureStorageProvider));
+            loConfig.Add(typeof(MaxDataContextAzureTableProvider).Name, typeof(MaxDataContextAzureTableProvider));
+            //// Use in the app MaxStartup with the some real keys or connection strings
+            //this.SetProviderConfigurationInstrumentationKey(loConfig, string.Empty, string.Empty);
+            //this.SetProviderConfigurationConnectionString(loConfig, string.Empty, string.Empty);
         }
 
         public virtual void SetProviderConfigurationInstrumentationKey(MaxIndex loConfig, string lsProduction, string lsDev)
         {
-            loConfig.Add(MaxLogLibraryAzureApplicationInsightProvider.InstrumentationKeyConfigName, lsProduction);
+            loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.InstrumentationKeyConfigName, lsProduction);
 #if DEBUG
-            loConfig.Add(MaxLogLibraryAzureApplicationInsightProvider.InstrumentationKeyConfigName, lsDev);
+            loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.InstrumentationKeyConfigName, lsDev);
 #else
             if (System.Diagnostics.Debugger.IsAttached)
             {
-                loConfig.Add(MaxLogLibraryAzureApplicationInsightProvider.InstrumentationKeyConfigName, lsDev);
+                loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.InstrumentationKeyConfigName, lsDev);
             }
 #endif
         }
 
         public virtual void SetProviderConfigurationConnectionString(MaxIndex loConfig, string lsProduction, string lsDev)
         {
-            loConfig.Add(MaxLogLibraryAzureApplicationInsightProvider.ConnectionStringConfigName, lsProduction);
+            loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.ConnectionStringConfigName, lsProduction);
 #if DEBUG
-            loConfig.Add(MaxLogLibraryAzureApplicationInsightProvider.ConnectionStringConfigName, lsDev);
+            loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.ConnectionStringConfigName, lsDev);
 #else
             if (System.Diagnostics.Debugger.IsAttached)
             {
-                loConfig.Add(MaxLogLibraryAzureApplicationInsightProvider.ConnectionStringConfigName, lsDev);
+                loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.ConnectionStringConfigName, lsDev);
             }
 #endif
         }
@@ -131,6 +132,17 @@ namespace MaxFactry.Provider.AzureProvider
         public virtual void RegisterProviderAzureApplicationInsightProvider()
         {
             MaxFactry.Core.MaxLogLibrary.Instance.ProviderAdd(typeof(MaxFactry.Core.Provider.MaxLogLibraryAzureApplicationInsightProvider));
+        }
+
+        /// <summary>
+        /// Only register this provider if the repository provider is AzureTable
+        /// </summary>
+        public virtual void RegisterProviderAzureSecurityTableProvider()
+        {
+            //// Azure storage provider configuration for security module
+            MaxFactry.General.DataLayer.MaxSecurityRepository.Instance.ProviderAdd(
+                typeof(MaxFactry.General.DataLayer.MaxUserDataModel).ToString(),
+                typeof(MaxFactry.General.DataLayer.Provider.MaxSecurityRepositoryAzureTableProvider));
         }
 
         /// <summary>

@@ -63,6 +63,7 @@
     <Compile Include="MaxFactry.Core\Library\Provider\MaxLogLibraryAzureApplicationInsightProvider.cs" />
     <Compile Include="MaxFactry.Base\DataLayer\Repository\Provider\MaxDataContextAzureStorageProvider.cs" />
     <Compile Include="MaxFactry.Module.Security\DataLayer\Repository\Provider\MaxSecurityRepositoryAzureTableProvider.cs" />
+    <Compile Include="MaxStartup.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

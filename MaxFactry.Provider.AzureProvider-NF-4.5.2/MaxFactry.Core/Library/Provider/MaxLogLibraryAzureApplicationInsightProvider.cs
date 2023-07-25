@@ -95,7 +95,6 @@ namespace MaxFactry.Core.Provider
             {
                 this._sConnectionString = lsConnectionString;
             }
-            
         }
 
         protected string InstrumentationKey
