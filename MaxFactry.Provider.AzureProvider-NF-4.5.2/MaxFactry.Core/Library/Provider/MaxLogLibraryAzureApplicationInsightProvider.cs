@@ -138,36 +138,42 @@ namespace MaxFactry.Core.Provider
                 {
                     lsConfigKey = "IK:" + this.InstrumentationKey;
                 }
-                if (!string.IsNullOrEmpty(lsConfigKey) && !this._oTelemetryConfigIndex.ContainsKey(lsConfigKey))
-                {
-                    lock (_oLock)
-                    {
-                        if (!this._oTelemetryConfigIndex.ContainsKey(lsConfigKey))
-                        {
-                            TelemetryConfiguration loConfig = TelemetryConfiguration.Active;
-                            if (null != loConfig)
-                            {
-                                if (!string.IsNullOrEmpty(this.ConnectionString))
-                                {
-                                    loConfig.ConnectionString = this.ConnectionString;
-                                }
-                                else
-                                {
-                                    loConfig.InstrumentationKey = this.InstrumentationKey;
-                                }
 
-                                loConfig.TelemetryChannel.DeveloperMode = Debugger.IsAttached;
+                if (!string.IsNullOrEmpty(lsConfigKey))
+                {
+                    if (!this._oTelemetryConfigIndex.ContainsKey(lsConfigKey))
+                    {
+                        lock (_oLock)
+                        {
+                            if (!this._oTelemetryConfigIndex.ContainsKey(lsConfigKey))
+                            {
+                                TelemetryConfiguration loConfig = TelemetryConfiguration.Active;
+                                if (null != loConfig)
+                                {
+                                    if (!string.IsNullOrEmpty(this.ConnectionString))
+                                    {
+                                        loConfig.ConnectionString = this.ConnectionString;
+                                    }
+                                    else
+                                    {
+                                        loConfig.InstrumentationKey = this.InstrumentationKey;
+                                    }
+
+                                    loConfig.TelemetryChannel.DeveloperMode = Debugger.IsAttached;
 #if DEBUG
                                 loConfig.TelemetryChannel.DeveloperMode = true;
 #endif
-                            }
+                                }
 
-                            this._oTelemetryConfigIndex.Add(lsConfigKey, loConfig);
+                                this._oTelemetryConfigIndex.Add(lsConfigKey, loConfig);
+                            }
                         }
                     }
+
+                    return this._oTelemetryConfigIndex[lsConfigKey];
                 }
 
-                return this._oTelemetryConfigIndex[lsConfigKey];
+                return null;
             }
         }
 
