@@ -213,6 +213,10 @@ namespace MaxFactry.Core.Provider
             }
         }
 
+        /// <summary>
+        /// Only log emergency level exceptions to azure.  Error level exceptions can just be logged locally.
+        /// </summary>
+        /// <param name="loLogEntry"></param>
         public override void Log(MaxLogEntryStructure loLogEntry)
         {
             TelemetryClient loClient = this.TelemetryClient;
@@ -245,20 +249,18 @@ namespace MaxFactry.Core.Provider
                     }
                 }
 
-                if (null != loExceptionToLog)
+                loPropertyIndex.Add("MessageTemplate", loLogEntry.MessageTemplate);
+                loPropertyIndex.Add("Timestamp", loLogEntry.Timestamp.ToString());
+                loPropertyIndex.Add("Level", loLogEntry.Level.ToString());
+                if (null != loExceptionToLog && MaxEnumGroup.LogEmergency <= loLogEntry.Level)
                 {
-                    loPropertyIndex.Add("MessageTemplate", loLogEntry.MessageTemplate);
-                    loPropertyIndex.Add("Timestamp", loLogEntry.Timestamp.ToString());
-                    loPropertyIndex.Add("Level", loLogEntry.Level.ToString());
                     loClient.TrackException(loExceptionToLog, loPropertyIndex, loMetricIndex);
                     loClient.Flush();
                 }
                 else if (MaxEnumGroup.LogDebug < loLogEntry.Level && loLogEntry.Level < MaxEnumGroup.LogStatic)
                 {
-                    loPropertyIndex.Add("Timestamp", loLogEntry.Timestamp.ToString());
-                    loPropertyIndex.Add("Level", loLogEntry.Level.ToString());
                     loClient.TrackEvent(loLogEntry.MessageTemplate, loPropertyIndex, loMetricIndex);
-                    if (loLogEntry.MessageTemplate == "Close Application")
+                    if (loLogEntry.MessageTemplate.Contains("Application Shutdown"))
                     {
                         loClient.Flush();
                         System.Threading.Thread.Sleep(5000);
