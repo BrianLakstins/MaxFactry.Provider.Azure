@@ -76,7 +76,7 @@
   <ItemGroup />
   <ItemGroup>
     <PackageReference Include="MaxFactry.Provider.Core">
-      <Version>1.0.22.2</Version>
+      <Version>1.0.22.4</Version>
     </PackageReference>
     <PackageReference Include="Microsoft.ApplicationInsights">
       <Version>2.21.0</Version>
