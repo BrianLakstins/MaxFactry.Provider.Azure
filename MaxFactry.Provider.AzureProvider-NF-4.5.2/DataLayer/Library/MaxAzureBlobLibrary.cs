@@ -49,6 +49,7 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
     using Microsoft.WindowsAzure.Storage.Auth;
     using Microsoft.WindowsAzure.Storage.Blob;
     using Microsoft.WindowsAzure.Storage.Table;
+    using Microsoft.WindowsAzure.Storage.Shared.Protocol;
 #endif
 
     /// <summary>
@@ -283,6 +284,27 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Enables Cross-Origin Resource Sharing
+        /// </summary>
+        /// <param name="lsOrigin">Origin to allow.  * for all sites.</param>
+        public static void EnableCors(string lsOrigin, string lsAccountName, string lsAccountKey)
+        {
+            // Create the blob client.
+            CloudBlobClient loBlobClient = new CloudStorageAccount(new StorageCredentials(lsAccountName, lsAccountKey), true).CreateCloudBlobClient();
+
+            // Get the service properties
+            ServiceProperties loServiceProperties = loBlobClient.GetServiceProperties();
+
+            CorsRule loRule = new CorsRule();
+            loRule.AllowedOrigins.Add(lsOrigin);
+            loRule.AllowedMethods = CorsHttpMethods.Get;
+            loRule.MaxAgeInSeconds = 3600;
+
+            loServiceProperties.Cors.CorsRules.Add(loRule);
+            loBlobClient.SetServiceProperties(loServiceProperties);
         }
     }
 }

@@ -82,13 +82,13 @@ namespace MaxFactry.Provider.AzureProvider
         }
 
         /// <summary>
-        /// To be run after providers have been registered
+        /// Sets the conifiguration for providers
         /// </summary>
         /// <param name="loConfig">The configuration for the default repository provider.</param>
         public virtual void SetProviderConfiguration(MaxIndex loConfig)
         {
+            loConfig.Add(typeof(MaxDataContextStreamAzureBlobProvider).Name, typeof(MaxDataContextStreamAzureBlobProvider));
             loConfig.Add(typeof(MaxDataContextAzureSqlProvider).Name, typeof(MaxDataContextAzureSqlProvider));
-            loConfig.Add(typeof(MaxDataContextAzureStorageProvider).Name, typeof(MaxDataContextAzureStorageProvider));
             loConfig.Add(typeof(MaxDataContextAzureTableProvider).Name, typeof(MaxDataContextAzureTableProvider));
             //// Use in the app MaxStartup with the some real keys or connection strings
             //this.SetProviderConfigurationInstrumentationKey(loConfig, string.Empty, string.Empty);
@@ -122,11 +122,18 @@ namespace MaxFactry.Provider.AzureProvider
         }
 
         /// <summary>
-        /// To be run first, before anything else in the application.
+        /// Registers providers after their configuration has been set
         /// </summary>
         public virtual void RegisterProviders()
         {
-            this.RegisterProviderAzureApplicationInsightProvider();
+            //this.RegisterProviderAzureApplicationInsightProvider();
+            //this.RegisterProviderAzureSecurityTableProvider();
+            //this.RegisterProviderAzureBlobProvider();
+        }
+
+        public virtual void RegisterProviderAzureBlobProvider()
+        {
+            MaxFactry.Base.DataLayer.MaxDataContextStreamLibrary.Instance.ProviderSet(typeof(MaxDataContextStreamAzureBlobProvider));
         }
 
         public virtual void RegisterProviderAzureApplicationInsightProvider()
@@ -146,7 +153,7 @@ namespace MaxFactry.Provider.AzureProvider
         }
 
         /// <summary>
-        /// To be run after providers have been configured.
+        /// Starts the application once all providers are configured and registered.
         /// </summary>
         public virtual void ApplicationStartup()
         {

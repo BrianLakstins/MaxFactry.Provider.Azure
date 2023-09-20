@@ -57,7 +57,7 @@ namespace MaxFactry.General.DataLayer.Provider
         /// <param name="loConfig">Configuration information.</param>
         public override void Initialize(string lsName, MaxIndex loConfig)
         {
-            this.DefaultContextProviderType = typeof(MaxDataContextAzureStorageProvider);
+            this.DefaultContextProviderType = typeof(MaxDataContextAzureTableProvider);
             base.Initialize(lsName, loConfig);
         }
 

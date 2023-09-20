@@ -53,6 +53,7 @@
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MaxFactry.Base\DataLayer\Library\Provider\MaxDataContextStreamAzureBlobProvider.cs" />
     <Compile Include="MaxStartup.cs" />
     <Compile Include="DataLayer\DataModel\MaxAzureTableDataModel.cs" />
     <Compile Include="DataLayer\Library\MaxAzureBlobLibrary.cs" />
@@ -62,7 +63,6 @@
     <Compile Include="MaxFactry.Base\DataLayer\Repository\Provider\MaxDataContextAzureSqlProvider.cs" />
     <Compile Include="MaxFactry.Base\DataLayer\Repository\Provider\MaxDataContextAzureTableProvider.cs" />
     <Compile Include="MaxFactry.Core\Library\Provider\MaxLogLibraryAzureApplicationInsightProvider.cs" />
-    <Compile Include="MaxFactry.Base\DataLayer\Repository\Provider\MaxDataContextAzureStorageProvider.cs" />
     <Compile Include="MaxFactry.Module.Security\DataLayer\Repository\Provider\MaxSecurityRepositoryAzureTableProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -75,6 +75,9 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
+    <PackageReference Include="MaxFactry.Base">
+      <Version>1.0.22.5</Version>
+    </PackageReference>
     <PackageReference Include="MaxFactry.Provider.Core">
       <Version>1.0.22.4</Version>
     </PackageReference>
