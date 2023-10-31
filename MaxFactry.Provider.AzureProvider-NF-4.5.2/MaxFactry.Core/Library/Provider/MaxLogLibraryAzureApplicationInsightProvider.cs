@@ -128,6 +128,11 @@ namespace MaxFactry.Core.Provider
                     this._oPerformanceModule.Counters.Add(new PerformanceCounterCollectionRequest(@"\Process(??APP_WIN32_PROC??)\IO Data Bytes/sec", @"\Process(??APP_WIN32_PROC??)\IO Data Bytes/sec"));
                 }
 
+                if (System.Diagnostics.Debugger.IsAttached)
+                {
+                    this._oPerformanceModule.EnableIISExpressPerformanceCounters = true;
+                }
+
                 this._oPerformanceModule.Initialize(this.TelemetryConfig);
             }
         }
@@ -309,6 +314,12 @@ namespace MaxFactry.Core.Provider
                 loPropertyIndex.Add("Message", loLogEntry.Message);
                 loPropertyIndex.Add("Timestamp", loLogEntry.Timestamp.ToString());
                 loPropertyIndex.Add("Level", loLogEntry.Level.ToString());
+                string lsName = loLogEntry.Name;
+                if (string.IsNullOrEmpty(lsName))
+                {
+                    lsName = loLogEntry.Message;
+                }
+
                 if (null != loExceptionToLog && MaxEnumGroup.LogEmergency <= loLogEntry.Level)
                 {
                     loClient.TrackException(loExceptionToLog, loPropertyIndex, loMetricIndex);
@@ -316,7 +327,7 @@ namespace MaxFactry.Core.Provider
                 }
                 else if (MaxEnumGroup.LogStatic < loLogEntry.Level && loLogEntry.Level < MaxEnumGroup.LogDebug)
                 {
-                    loClient.TrackEvent(loLogEntry.Name, loPropertyIndex, loMetricIndex);
+                    loClient.TrackEvent(lsName, loPropertyIndex, loMetricIndex);
                 }
 
                 if (loLogEntry.MessageTemplate.Contains("Application Shutdown"))
