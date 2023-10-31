@@ -83,6 +83,10 @@ namespace MaxFactry.Provider.AzureProvider
 
         /// <summary>
         /// Sets the conifiguration for providers
+        /// These methods can be used individually
+        /// this.SetProviderConfigurationInstrumentationKey(loConfig, string.Empty, string.Empty);
+        /// this.SetProviderConfigurationConnectionString(loConfig, string.Empty, string.Empty);
+        /// this.SetProviderConfigurationPerformanceCounterList(loConfig, "Default", "Default");
         /// </summary>
         /// <param name="loConfig">The configuration for the default repository provider.</param>
         public virtual void SetProviderConfiguration(MaxIndex loConfig)
@@ -93,6 +97,7 @@ namespace MaxFactry.Provider.AzureProvider
             //// Use in the app MaxStartup with the some real keys or connection strings
             //this.SetProviderConfigurationInstrumentationKey(loConfig, string.Empty, string.Empty);
             //this.SetProviderConfigurationConnectionString(loConfig, string.Empty, string.Empty);
+            //this.SetProviderConfigurationPerformanceCounterList(loConfig, "Default", "Default");
         }
 
         public virtual void SetProviderConfigurationInstrumentationKey(MaxIndex loConfig, string lsProduction, string lsDev)
@@ -121,14 +126,31 @@ namespace MaxFactry.Provider.AzureProvider
 #endif
         }
 
+        public virtual void SetProviderConfigurationPerformanceCounterList(MaxIndex loConfig, string lsProduction, string lsDev)
+        {
+            loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.PerformanceCounterListConfigName, lsProduction);
+#if DEBUG
+            loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.PerformanceCounterListConfigName, lsDev);
+#else
+            if (System.Diagnostics.Debugger.IsAttached)
+            {
+                loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.PerformanceCounterListConfigName, lsDev);
+            }
+#endif
+        }
+
         /// <summary>
         /// Registers providers after their configuration has been set
+        /// These methods can be used individually.  They are included by default when using this method.
+        /// this.RegisterProviderAzureApplicationInsightProvider();
+        /// this.RegisterProviderAzureSecurityTableProvider();
+        /// this.RegisterProviderAzureBlobProvider();
         /// </summary>
         public virtual void RegisterProviders()
         {
-            //this.RegisterProviderAzureApplicationInsightProvider();
-            //this.RegisterProviderAzureSecurityTableProvider();
-            //this.RegisterProviderAzureBlobProvider();
+            this.RegisterProviderAzureApplicationInsightProvider();
+            this.RegisterProviderAzureSecurityTableProvider();
+            this.RegisterProviderAzureBlobProvider();
         }
 
         public virtual void RegisterProviderAzureBlobProvider()

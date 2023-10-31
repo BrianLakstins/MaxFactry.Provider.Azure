@@ -51,6 +51,7 @@ namespace MaxFactry.Core.Provider
     using Microsoft.ApplicationInsights;
     using Microsoft.ApplicationInsights.Extensibility;
     using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector;
+    using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector.QuickPulse;
 
     /// <summary>
     /// Azure Application Insights provider for the MaxFactory class to manage logging.
@@ -67,11 +68,15 @@ namespace MaxFactry.Core.Provider
 
         private string _sConnectionString = null;
 
+        private string _sPerformanceCounterList = null;
+
         private PerformanceCollectorModule _oPerformanceModule;
 
         public const string InstrumentationKeyConfigName = "InstrumentationKey";
 
         public const string ConnectionStringConfigName = "ConnectionString";
+
+        public const string PerformanceCounterListConfigName = "PerformanceCounterList";
 
         /// <summary>
         /// Initializes the provider.
@@ -94,6 +99,36 @@ namespace MaxFactry.Core.Provider
             if (!string.IsNullOrEmpty(lsConnectionString))
             {
                 this._sConnectionString = lsConnectionString;
+            }
+
+            string lsPerformanceCounterList = this.GetConfigValue(loConfig, PerformanceCounterListConfigName) as string;
+            if (!string.IsNullOrEmpty(lsPerformanceCounterList))
+            {
+                this._sPerformanceCounterList = lsPerformanceCounterList;
+                this._oPerformanceModule = new PerformanceCollectorModule();
+
+                //// Should be a tab separated list of counter and name.  counter\tname\tcounter\tname.  Should always be an even number.
+                string[] laPerformanceCounterList = lsPerformanceCounterList.Split('\t');
+                if (laPerformanceCounterList.Length > 1)
+                {
+                    this._oPerformanceModule.DefaultCounters.Clear();
+                    for (int lnP = 1; lnP < laPerformanceCounterList.Length; lnP = lnP + 2)
+                    {
+                        this._oPerformanceModule.Counters.Add(new PerformanceCounterCollectionRequest(laPerformanceCounterList[lnP - 1], laPerformanceCounterList[lnP]));
+                    }
+                }
+                else if (!lsPerformanceCounterList.Contains("ASP.NET"))
+                { 
+                    //// Default includes ASP.NET counters.  Only use the defauly if this is an ASP.NET application.
+                    this._oPerformanceModule.DefaultCounters.Clear();
+                    this._oPerformanceModule.Counters.Add(new PerformanceCounterCollectionRequest(@"\Process(??APP_WIN32_PROC??)\% Processor Time", @"\Process(??APP_WIN32_PROC??)\% Processor Time"));
+                    this._oPerformanceModule.Counters.Add(new PerformanceCounterCollectionRequest(@"\Process(??APP_WIN32_PROC??)\% Processor Time Normalized", @"\Process(??APP_WIN32_PROC??)\% Processor Time Normalized"));
+                    this._oPerformanceModule.Counters.Add(new PerformanceCounterCollectionRequest(@"\Memory\Available Bytes", @"\Memory\Available Bytes"));
+                    this._oPerformanceModule.Counters.Add(new PerformanceCounterCollectionRequest(@"\Process(??APP_WIN32_PROC??)\Private Bytes", @"\Process(??APP_WIN32_PROC??)\Private Bytes"));
+                    this._oPerformanceModule.Counters.Add(new PerformanceCounterCollectionRequest(@"\Process(??APP_WIN32_PROC??)\IO Data Bytes/sec", @"\Process(??APP_WIN32_PROC??)\IO Data Bytes/sec"));
+                }
+
+                this._oPerformanceModule.Initialize(this.TelemetryConfig);
             }
         }
 
@@ -159,9 +194,21 @@ namespace MaxFactry.Core.Provider
                                         loConfig.InstrumentationKey = this.InstrumentationKey;
                                     }
 
+                                    if (!string.IsNullOrEmpty(this._sPerformanceCounterList) && this._sPerformanceCounterList.Contains("Live"))
+                                    {
+                                        QuickPulseTelemetryProcessor quickPulseProcessor = null;
+                                        loConfig.DefaultTelemetrySink.TelemetryProcessorChainBuilder
+                                            .Use((next) =>
+                                            {
+                                                quickPulseProcessor = new QuickPulseTelemetryProcessor(next);
+                                                return quickPulseProcessor;
+                                            })
+                                            .Build();
+                                    }
+
                                     loConfig.TelemetryChannel.DeveloperMode = Debugger.IsAttached;
 #if DEBUG
-                                loConfig.TelemetryChannel.DeveloperMode = true;
+                                    loConfig.TelemetryChannel.DeveloperMode = true;
 #endif
                                 }
 
@@ -182,34 +229,43 @@ namespace MaxFactry.Core.Provider
             get
             {
                 string lsKey = this.InstrumentationKey;
-                if (!this._oTelemetryClientIndex.ContainsKey(lsKey))
+                if (!string.IsNullOrEmpty(lsKey))
                 {
-                    lock (_oLock)
+                    if (!this._oTelemetryClientIndex.ContainsKey(lsKey))
                     {
-                        if (!this._oTelemetryClientIndex.ContainsKey(lsKey))
+                        lock (_oLock)
                         {
-                            TelemetryClient loClient = null;
-                            if (null != this.TelemetryConfig)
+                            if (!this._oTelemetryClientIndex.ContainsKey(lsKey))
                             {
-                                //// TODO: update this to use config information so that a provider can be used for the tracking information
-                                loClient = new TelemetryClient(TelemetryConfig);
-                                loClient.Context.Session.Id = Guid.NewGuid().ToString();
-                                loClient.Context.User.Id = (Environment.UserName + Environment.MachineName).GetHashCode().ToString();
-                                loClient.Context.User.AuthenticatedUserId = Environment.MachineName + "/" + Environment.UserName;
-                                loClient.Context.Device.OperatingSystem = Environment.OSVersion.ToString();
-                                Assembly loEntryAssembly = Assembly.GetEntryAssembly();
-                                if (null != loEntryAssembly)
+                                TelemetryClient loClient = null;
+                                if (null != this.TelemetryConfig)
                                 {
-                                    loClient.Context.Component.Version = loEntryAssembly.GetName().Version.ToString();
+                                    //// TODO: update this to use config information so that a provider can be used for the tracking information
+                                    loClient = new TelemetryClient(TelemetryConfig);
+                                    loClient.Context.Session.Id = Guid.NewGuid().ToString();
+                                    loClient.Context.User.Id = (Environment.UserName + Environment.MachineName).GetHashCode().ToString();
+                                    loClient.Context.User.AuthenticatedUserId = Environment.MachineName + "/" + Environment.UserName;
+                                    loClient.Context.Device.OperatingSystem = Environment.OSVersion.ToString();
+                                    Assembly loEntryAssembly = Assembly.GetEntryAssembly();
+                                    if (null != loEntryAssembly)
+                                    {
+                                        AssemblyFileVersionAttribute loAttribute = Attribute.GetCustomAttribute(loEntryAssembly, typeof(AssemblyFileVersionAttribute)) as AssemblyFileVersionAttribute;
+                                        if (null != loAttribute)
+                                        {
+                                            loClient.Context.Component.Version = loAttribute.Version;
+                                        }
+                                    }
                                 }
-                            }
 
-                            this._oTelemetryClientIndex.Add(lsKey, loClient);
+                                this._oTelemetryClientIndex.Add(lsKey, loClient);
+                            }
                         }
                     }
+
+                    return this._oTelemetryClientIndex[lsKey]; ;
                 }
 
-                return this._oTelemetryClientIndex[lsKey]; ;
+                return null;
             }
         }
 
@@ -250,6 +306,7 @@ namespace MaxFactry.Core.Provider
                 }
 
                 loPropertyIndex.Add("MessageTemplate", loLogEntry.MessageTemplate);
+                loPropertyIndex.Add("Message", loLogEntry.Message);
                 loPropertyIndex.Add("Timestamp", loLogEntry.Timestamp.ToString());
                 loPropertyIndex.Add("Level", loLogEntry.Level.ToString());
                 if (null != loExceptionToLog && MaxEnumGroup.LogEmergency <= loLogEntry.Level)
@@ -257,30 +314,16 @@ namespace MaxFactry.Core.Provider
                     loClient.TrackException(loExceptionToLog, loPropertyIndex, loMetricIndex);
                     loClient.Flush();
                 }
-                else if (MaxEnumGroup.LogDebug < loLogEntry.Level && loLogEntry.Level < MaxEnumGroup.LogStatic)
+                else if (MaxEnumGroup.LogStatic < loLogEntry.Level && loLogEntry.Level < MaxEnumGroup.LogDebug)
                 {
-                    loClient.TrackEvent(loLogEntry.MessageTemplate, loPropertyIndex, loMetricIndex);
-                    if (loLogEntry.MessageTemplate.Contains("Application Shutdown"))
-                    {
-                        loClient.Flush();
-                        System.Threading.Thread.Sleep(5000);
-                    }
+                    loClient.TrackEvent(loLogEntry.Name, loPropertyIndex, loMetricIndex);
                 }
-            }
-        }
 
-        protected void StartPerformanceCounterLogging()
-        {
-            if (null == this._oPerformanceModule && null != this.TelemetryConfig)
-            {
-                this._oPerformanceModule = new PerformanceCollectorModule();
-                this._oPerformanceModule.DefaultCounters.Clear();
-                this._oPerformanceModule.Counters.Add(new PerformanceCounterCollectionRequest(@"\Process(??APP_WIN32_PROC??)\% Processor Time", @"\Process(??APP_WIN32_PROC??)\% Processor Time"));
-                this._oPerformanceModule.Counters.Add(new PerformanceCounterCollectionRequest(@"\Process(??APP_WIN32_PROC??)\% Processor Time Normalized", @"\Process(??APP_WIN32_PROC??)\% Processor Time Normalized"));
-                this._oPerformanceModule.Counters.Add(new PerformanceCounterCollectionRequest(@"\Memory\Available Bytes", @"\Memory\Available Bytes"));
-                this._oPerformanceModule.Counters.Add(new PerformanceCounterCollectionRequest(@"\Process(??APP_WIN32_PROC??)\Private Bytes", @"\Process(??APP_WIN32_PROC??)\Private Bytes"));
-                this._oPerformanceModule.Counters.Add(new PerformanceCounterCollectionRequest(@"\Process(??APP_WIN32_PROC??)\IO Data Bytes/sec", @"\Process(??APP_WIN32_PROC??)\IO Data Bytes/sec"));
-                this._oPerformanceModule.Initialize(this.TelemetryConfig);
+                if (loLogEntry.MessageTemplate.Contains("Application Shutdown"))
+                {
+                    loClient.Flush();
+                    this.StopPerformanceCounterLogging();
+                }
             }
         }
 
