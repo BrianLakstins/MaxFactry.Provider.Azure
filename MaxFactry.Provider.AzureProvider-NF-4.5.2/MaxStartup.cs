@@ -102,41 +102,38 @@ namespace MaxFactry.Provider.AzureProvider
 
         public virtual void SetProviderConfigurationInstrumentationKey(MaxIndex loConfig, string lsProduction, string lsDev)
         {
-            loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.InstrumentationKeyConfigName, lsProduction);
-#if DEBUG
-            loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.InstrumentationKeyConfigName, lsDev);
-#else
-            if (System.Diagnostics.Debugger.IsAttached)
+            if (MaxFactry.Core.MaxFactryLibrary.Environment == MaxEnumGroup.EnvironmentProduction)
+            {
+                loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.InstrumentationKeyConfigName, lsProduction);
+            }
+            else
             {
                 loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.InstrumentationKeyConfigName, lsDev);
             }
-#endif
         }
 
         public virtual void SetProviderConfigurationConnectionString(MaxIndex loConfig, string lsProduction, string lsDev)
         {
-            loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.ConnectionStringConfigName, lsProduction);
-#if DEBUG
-            loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.ConnectionStringConfigName, lsDev);
-#else
-            if (System.Diagnostics.Debugger.IsAttached)
+            if (MaxFactry.Core.MaxFactryLibrary.Environment == MaxEnumGroup.EnvironmentProduction)
+            {
+                loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.ConnectionStringConfigName, lsProduction);
+            }
+            else
             {
                 loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.ConnectionStringConfigName, lsDev);
             }
-#endif
         }
 
         public virtual void SetProviderConfigurationPerformanceCounterList(MaxIndex loConfig, string lsProduction, string lsDev)
         {
-            loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.PerformanceCounterListConfigName, lsProduction);
-#if DEBUG
-            loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.PerformanceCounterListConfigName, lsDev);
-#else
-            if (System.Diagnostics.Debugger.IsAttached)
+            if (MaxFactry.Core.MaxFactryLibrary.Environment == MaxEnumGroup.EnvironmentProduction)
+            {
+                loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.PerformanceCounterListConfigName, lsProduction);
+            }
+            else
             {
                 loConfig.Add(typeof(MaxLogLibraryAzureApplicationInsightProvider) + "-" + MaxLogLibraryAzureApplicationInsightProvider.PerformanceCounterListConfigName, lsDev);
             }
-#endif
         }
 
         /// <summary>
