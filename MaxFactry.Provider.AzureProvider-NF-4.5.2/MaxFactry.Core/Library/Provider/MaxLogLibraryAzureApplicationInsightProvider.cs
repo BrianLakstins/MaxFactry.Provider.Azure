@@ -118,7 +118,7 @@ namespace MaxFactry.Core.Provider
                     }
                 }
                 else if (!lsPerformanceCounterList.Contains("ASP.NET"))
-                { 
+                {
                     //// Default includes ASP.NET counters.  Only use the defauly if this is an ASP.NET application.
                     this._oPerformanceModule.DefaultCounters.Clear();
                     this._oPerformanceModule.Counters.Add(new PerformanceCounterCollectionRequest(@"\Process(??APP_WIN32_PROC??)\% Processor Time", @"\Process(??APP_WIN32_PROC??)\% Processor Time"));
@@ -141,11 +141,14 @@ namespace MaxFactry.Core.Provider
         {
             get
             {
+                //// TODO: Figure out a way to get Scope24 (app specific) instrumentation keys without having to use configuration.  Using configuration causes stack overflow when logging level is set to debug.
+                /*
                 string lsInstrumentationKey = MaxConfigurationLibrary.GetValue(MaxEnumGroup.Scope24, InstrumentationKeyConfigName) as string;
                 if (!string.IsNullOrEmpty(lsInstrumentationKey))
                 {
                     return lsInstrumentationKey;
                 }
+                */
 
                 return this._sInstrumentationKey;
             }
@@ -155,11 +158,13 @@ namespace MaxFactry.Core.Provider
         {
             get
             {
+                //// TODO: Figure out a way to get Scope24 (app specific) connection strings without having to use configuration.  Using configuration causes stack overflow when logging level is set to debug.
+                /*
                 string lsConnectionString = MaxConfigurationLibrary.GetValue(MaxEnumGroup.Scope24, ConnectionStringConfigName) as string;
                 if (!string.IsNullOrEmpty(lsConnectionString))
                 {
                     return lsConnectionString;
-                }
+                }*/
 
                 return this._sConnectionString;
             }
@@ -213,7 +218,7 @@ namespace MaxFactry.Core.Provider
 
                                     loConfig.TelemetryChannel.DeveloperMode = Debugger.IsAttached;
 #if DEBUG
-                                    loConfig.TelemetryChannel.DeveloperMode = true;
+                    loConfig.TelemetryChannel.DeveloperMode = true;
 #endif
                                 }
 
