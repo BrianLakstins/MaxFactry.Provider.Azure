@@ -124,15 +124,15 @@ namespace MaxFactry.Base.DataLayer.Provider
         /// <param name="loDataQuery">Query information to filter results.</param>
         /// <param name="lnPageIndex">Page to return.</param>
         /// <param name="lnPageSize">Items per page.</param>
-        /// <param name="lsSort">Sort information</param>
+        /// <param name="lsOrderBy">Sort information</param>
         /// <param name="lnTotal">Total items found.</param>
-        /// <param name="laFields">list of fields to return from select.</param>
+        /// <param name="laDataNameList">list of fields to return from select.</param>
         /// <returns>List of data from select.</returns>
-        public override MaxDataList Select(MaxData loData, MaxDataQuery loDataQuery, int lnPageIndex, int lnPageSize, string lsSort, out int lnTotal, params string[] laFields)
+        public override MaxDataList Select(MaxData loData, MaxDataQuery loDataQuery, int lnPageIndex, int lnPageSize, string lsOrderBy, out int lnTotal, params string[] laDataNameList)
         {
             System.Diagnostics.Stopwatch loWatch = System.Diagnostics.Stopwatch.StartNew();
             MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelectStart", MaxFactry.Core.MaxEnumGroup.LogDebug, "select {DataStorageName}", loData.DataModel.DataStorageName));
-            TableQuery loQuery = MaxAzureTableLibrary.GetTableQueryForSelect(loData, loDataQuery, laFields);
+            TableQuery loQuery = MaxAzureTableLibrary.GetTableQueryForSelect(loData, loDataQuery, laDataNameList);
             MaxDataList loDataList = new MaxDataList(loData.DataModel);
             //// Special case to select all records that have a PartitionKey that starts with the storage key instead of just the ones that match it exactly.
             if (lnPageSize == -1)
@@ -148,7 +148,7 @@ namespace MaxFactry.Base.DataLayer.Provider
                     lsStorageKey = MaxAzureTableLibrary.DefaultPartitionKey;
                 }
 
-                loQuery = MaxAzureTableLibrary.GetTableQueryForSelect(loData, loDataQuery, laFields);
+                loQuery = MaxAzureTableLibrary.GetTableQueryForSelect(loData, loDataQuery, laDataNameList);
                 MaxDataList loDataAllList = MaxAzureTableLibrary.Select(this.AccountName, this.AccountKey, this.Container, loQuery, loData, lnPageIndex, lnPageSize, out lnTotal);
                 //// Filter out all records that don't start with the Storage Key
                 for (int lnD = 0; lnD < loDataAllList.Count; lnD++)
@@ -273,9 +273,9 @@ namespace MaxFactry.Base.DataLayer.Provider
         /// Selects all data from the data storage name for the specified type.
         /// </summary>
         /// <param name="lsDataStorageName">Name of the data storage (table name).</param>
-        /// <param name="laFields">list of fields to return from select</param>
+        /// <param name="laDataNameList">list of fields to return from select</param>
         /// <returns>List of data elements with a base data model.</returns>
-        public override MaxDataList SelectAll(string lsDataStorageName, params string[] laFields)
+        public override MaxDataList SelectAll(string lsDataStorageName, params string[] laDataNameList)
         {
             System.Diagnostics.Stopwatch loWatch = System.Diagnostics.Stopwatch.StartNew();
             MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelectAllStart", MaxFactry.Core.MaxEnumGroup.LogDebug, "select all {DataStorageName}", lsDataStorageName));

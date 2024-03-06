@@ -721,9 +721,9 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
         /// </summary>
         /// <param name="loData">Element with data used in the filter.</param>
         /// <param name="loDataQuery">Query information to filter results.</param>
-        /// <param name="laFields">list of fields to return from select.</param>
+        /// <param name="laDataNameList">list of fields to return from select.</param>
         /// <returns>TableQuery to use with Azure Tables.</returns>
-        public static TableQuery GetTableQueryForSelect(MaxData loData, MaxDataQuery loDataQuery, params string[] laFields)
+        public static TableQuery GetTableQueryForSelect(MaxData loData, MaxDataQuery loDataQuery, params string[] laDataNameList)
         {
             string lsPartitionKey = loData.Get("_PartitionKey") as string;
             if (string.IsNullOrEmpty(lsPartitionKey))
@@ -754,9 +754,9 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
 
             TableQuery loQuery = new TableQuery();
             string[] laKey = loData.DataModel.GetKeyList();
-            if (null != laFields)
+            if (null != laDataNameList)
             {
-                loQuery.Select(laFields);
+                loQuery.Select(laDataNameList);
             }
             else
             {
