@@ -29,6 +29,7 @@
 // <changelog>
 // <change date="6/3/2021" author="Brian A. Lakstins" description="Initial creation based on AzureTableLibrary">
 // <change date="10/11/2021" author="Brian A. Lakstins" description="Reduce errors being logged based on existance checking">
+// <change date="3/31/2024" author="Brian A. Lakstins" description="Updated for changes to dependency classes.">
 // </changelog>
 #endregion Change Log
 
@@ -48,7 +49,6 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Auth;
     using Microsoft.WindowsAzure.Storage.Blob;
-    using Microsoft.WindowsAzure.Storage.Table;
     using Microsoft.WindowsAzure.Storage.Shared.Protocol;
 #endif
 
@@ -66,7 +66,16 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
         /// <returns>Name of file stored in AzureStorage BLOB</returns>
         public static string GetStreamFileName(MaxData loData, string lsBase, string lsKey)
         {
-            string lsStorageKey = MaxConvertLibrary.ConvertToString(typeof(object), loData.Get(loData.DataModel.StorageKey));
+            MaxBaseDataModel loBaseDataModel = loData.DataModel as MaxBaseDataModel;
+            string lsStorageKey = string.Empty;
+            if (null != loBaseDataModel)
+            {
+                if (loBaseDataModel.IsStored(loBaseDataModel.StorageKey))
+                {
+                    lsStorageKey = MaxConvertLibrary.ConvertToString(typeof(object), loData.Get(loBaseDataModel.StorageKey));
+                }
+            }
+
             if (lsKey.Contains("."))
             {
                 return lsStorageKey + "/" + loData.DataModel.DataStorageName + "/" + lsBase + "/" + lsKey;

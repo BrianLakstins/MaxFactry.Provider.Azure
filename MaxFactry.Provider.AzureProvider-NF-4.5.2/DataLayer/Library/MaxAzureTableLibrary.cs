@@ -54,18 +54,17 @@
 // <change date="11/30/2018" author="Brian A. Lakstins" description="Updated for changes to base.">
 // <change date="10/23/2019" author="Brian A. Lakstins" description="Updates to allow some blobs to be private and some to be public.">
 // <change date="12/11/2019" author="Brian A. Lakstins" description="Tweaks to query processes.  Allow selecting  records without using Partition Key as part of key for query.">
+// <change date="3/31/2024" author="Brian A. Lakstins" description="Updated for changes to dependency classes.">
 // </changelog>
 #endregion Change Log
 
 namespace MaxFactry.Provider.AzureProvider.DataLayer
 {
     using System;
-    using System.IO;
     using MaxFactry.Core;
     using MaxFactry.Base.DataLayer;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Auth;
-    using Microsoft.WindowsAzure.Storage.Blob;
     using Microsoft.WindowsAzure.Storage.Table;
 
     /// <summary>
@@ -152,52 +151,52 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
         /// </summary>
         /// <param name="lsAccountName">Azure Storage Account Name</param>
         /// <param name="lsAccountKey">Azure Storage Account Key</param>
-        /// <param name="lsTable">The table name</param>
+        /// <param name="loData">The table name</param>
         /// <returns>List of MaxData with all data</returns>
-        public static MaxDataList SelectAll(string lsAccountName, string lsAccountKey, string lsTable)
+        public static MaxDataList SelectAll(string lsAccountName, string lsAccountKey, MaxData loData)
         {
+            string lsTable = loData.DataModel.DataStorageName;
             CloudTableClient loTableClient = GetTableClient(lsAccountName, lsAccountKey, lsTable);
             CloudTable loTable = loTableClient.GetTableReference(lsTable);
             TableQuery loQuery = new TableQuery();
-            MaxAzureTableDataModel loDataModel = new MaxAzureTableDataModel();
-            MaxDataList loDataList = new MaxDataList(loDataModel);
+            MaxDataList loDataList = new MaxDataList(loData.DataModel);
             MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableQueryFilter", MaxFactry.Core.MaxEnumGroup.LogDebug, "select from {TableName}", loTable.Name));
             foreach (DynamicTableEntity loDataEntity in loTable.ExecuteQuery(loQuery))
             {
-                MaxData loDataNew = new MaxData(loDataModel);
+                MaxData loDataOut = new MaxData(loData.DataModel);
                 foreach (string lsKey in loDataEntity.Properties.Keys)
                 {
                     if (loDataEntity.Properties[lsKey].PropertyType == EdmType.Boolean)
                     {
-                        loDataNew.Set(lsKey, loDataEntity.Properties[lsKey].BooleanValue);
+                        loDataOut.Set(lsKey, loDataEntity.Properties[lsKey].BooleanValue);
                     }
                     else if (loDataEntity.Properties[lsKey].PropertyType == EdmType.DateTime)
                     {
                         DateTime ldValue = loDataEntity.Properties[lsKey].DateTimeOffsetValue.Value.UtcDateTime;
                         if (ldValue.Equals(AzureDateTimeMin))
                         {
-                            loDataNew.Set(lsKey, DateTime.MinValue);
+                            loDataOut.Set(lsKey, DateTime.MinValue);
                         }
                         else
                         {
-                            loDataNew.Set(lsKey, ldValue);
+                            loDataOut.Set(lsKey, ldValue);
                         }
                     }
                     else if (loDataEntity.Properties[lsKey].PropertyType == EdmType.Double)
                     {
-                        loDataNew.Set(lsKey, loDataEntity.Properties[lsKey].DoubleValue);
+                        loDataOut.Set(lsKey, loDataEntity.Properties[lsKey].DoubleValue);
                     }
                     else if (loDataEntity.Properties[lsKey].PropertyType == EdmType.Guid)
                     {
-                        loDataNew.Set(lsKey, loDataEntity.Properties[lsKey].GuidValue);
+                        loDataOut.Set(lsKey, loDataEntity.Properties[lsKey].GuidValue);
                     }
                     else if (loDataEntity.Properties[lsKey].PropertyType == EdmType.Int32)
                     {
-                        loDataNew.Set(lsKey, loDataEntity.Properties[lsKey].Int32Value);
+                        loDataOut.Set(lsKey, loDataEntity.Properties[lsKey].Int32Value);
                     }
                     else if (loDataEntity.Properties[lsKey].PropertyType == EdmType.Int64)
                     {
-                        loDataNew.Set(lsKey, loDataEntity.Properties[lsKey].Int64Value);
+                        loDataOut.Set(lsKey, loDataEntity.Properties[lsKey].Int64Value);
                     }
                     else if (loDataEntity.Properties[lsKey].PropertyType == EdmType.String)
                     {
@@ -213,12 +212,17 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                     }
                 }
 
-                loDataNew.Set("_Timestamp", loDataEntity.Timestamp);
-                loDataNew.Set("_RowKey", loDataEntity.RowKey);
-                loDataNew.Set("_PartitionKey", loDataEntity.PartitionKey);
-                loDataNew.Set(loDataNew.DataModel.StorageKey, loDataEntity.PartitionKey);
-                loDataNew.ClearChanged();
-                loDataList.Add(loDataNew);
+                loDataOut.Set("_Timestamp", loDataEntity.Timestamp);
+                loDataOut.Set("_RowKey", loDataEntity.RowKey);
+                loDataOut.Set("_PartitionKey", loDataEntity.PartitionKey);
+                MaxBaseDataModel loBaseDataModel = loData.DataModel as MaxBaseDataModel;
+                if (null != loBaseDataModel && loBaseDataModel.IsStored(loBaseDataModel.StorageKey))
+                {
+                    loDataOut.Set(loBaseDataModel.StorageKey, loDataEntity.PartitionKey);
+                }
+
+                loDataOut.ClearChanged();
+                loDataList.Add(loDataOut);
             }
 
             return loDataList;
@@ -243,7 +247,6 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
 
             MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableDataModel", MaxFactry.Core.MaxEnumGroup.LogDebug, "{DataModelType} after getting cloud table reference", loData.DataModel.GetType()));
             MaxDataList loDataList = new MaxDataList(loData.DataModel);
-            string[] laKey = loData.DataModel.GetKeyList();
             int lnRows = 0;
             int lnStart = 0;
             int lnEnd = int.MaxValue;
@@ -262,47 +265,46 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
             {
                 if (lnRows >= lnStart && lnRows < lnEnd)
                 {
-                    MaxData loDataNew = new MaxData(loData);
-                    for (int lnD = 0; lnD < laKey.Length; lnD++)
+                    MaxData loDataOut = new MaxData(loData);
+                    foreach (string lsDataName in loData.DataModel.DataNameList)
                     {
-                        string lsKey = laKey[lnD];
-                        if (loDataEntity.Properties.ContainsKey(lsKey))
+                        if (loDataEntity.Properties.ContainsKey(lsDataName))
                         {
-                            EntityProperty loProperty = loDataEntity.Properties[lsKey];
+                            EntityProperty loProperty = loDataEntity.Properties[lsDataName];
                             if (null != loProperty)
                             {
-                                Type loValueType = loData.DataModel.GetValueType(lsKey);
+                                Type loValueType = loData.DataModel.GetValueType(lsDataName);
                                 if (typeof(Guid).Equals(loValueType))
                                 {
-                                    loDataNew.Set(lsKey, loProperty.GuidValue);
+                                    loDataOut.Set(lsDataName, loProperty.GuidValue);
                                 }
                                 else if (typeof(bool).Equals(loValueType))
                                 {
-                                    loDataNew.Set(lsKey, loProperty.BooleanValue);
+                                    loDataOut.Set(lsDataName, loProperty.BooleanValue);
                                 }
                                 else if (typeof(DateTime).Equals(loValueType))
                                 {
                                     DateTime ldValue = loProperty.DateTimeOffsetValue.Value.UtcDateTime;
                                     if (ldValue.Equals(MaxAzureTableLibrary.AzureDateTimeMin))
                                     {
-                                        loDataNew.Set(lsKey, DateTime.MinValue);
+                                        loDataOut.Set(lsDataName, DateTime.MinValue);
                                     }
                                     else
                                     {
-                                        loDataNew.Set(lsKey, ldValue);
+                                        loDataOut.Set(lsDataName, ldValue);
                                     }
                                 }
                                 else if (typeof(double).Equals(loValueType))
                                 {
-                                    loDataNew.Set(lsKey, loProperty.DoubleValue);
+                                    loDataOut.Set(lsDataName, loProperty.DoubleValue);
                                 }
                                 else if (typeof(int).Equals(loValueType))
                                 {
-                                    loDataNew.Set(lsKey, loProperty.Int32Value);
+                                    loDataOut.Set(lsDataName, loProperty.Int32Value);
                                 }
                                 else if (typeof(long).Equals(loValueType))
                                 {
-                                    loDataNew.Set(lsKey, loProperty.Int64Value);
+                                    loDataOut.Set(lsDataName, loProperty.Int64Value);
                                 }
                                 else if (typeof(string).Equals(loValueType) ||
                                     typeof(MaxShortString).Equals(loValueType) ||
@@ -322,21 +324,21 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                                         lsValue = System.Text.UTF8Encoding.UTF8.GetString(laValue);
                                     }
 
-                                    loDataNew.Set(lsKey, lsValue);
+                                    loDataOut.Set(lsDataName, lsValue);
                                 }
                                 else if (typeof(byte[]).Equals(loValueType))
                                 {
-                                    loDataNew.Set(lsKey, loProperty.PropertyAsObject as byte[]);
+                                    loDataOut.Set(lsDataName, loProperty.PropertyAsObject as byte[]);
                                 }
                             }
                         }
                     }
 
-                    loDataNew.Set("_Timestamp", loDataEntity.Timestamp);
-                    loDataNew.Set("_RowKey", loDataEntity.RowKey);
-                    loDataNew.Set("_PartitionKey", loDataEntity.PartitionKey);
-                    loDataNew.ClearChanged();
-                    loDataList.Add(loDataNew);
+                    loDataOut.Set("_Timestamp", loDataEntity.Timestamp);
+                    loDataOut.Set("_RowKey", loDataEntity.RowKey);
+                    loDataOut.Set("_PartitionKey", loDataEntity.PartitionKey);
+                    loDataOut.ClearChanged();
+                    loDataList.Add(loDataOut);
                 }
 
                 lnRows++;
@@ -392,6 +394,7 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                     if (200 <= loResult.HttpStatusCode && loResult.HttpStatusCode < 300)
                     {
                         lnR++;
+                        loDataList[lnD].ClearChanged();
                     }
                     else
                     {
@@ -450,6 +453,7 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                     if (200 <= loResult.HttpStatusCode && loResult.HttpStatusCode < 300)
                     {
                         lnR++;
+                        loDataList[lnD].ClearChanged();
                     }
                     else
                     {
@@ -508,6 +512,7 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                     if (200 <= loResult.HttpStatusCode && loResult.HttpStatusCode < 300)
                     {
                         lnR++;
+                        loDataList[lnD].ClearChanged();
                     }
                     else
                     {
@@ -591,42 +596,50 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
         public static DynamicTableEntity GetDynamicTableEntityForSingleMatch(MaxData loData)
         {
             DynamicTableEntity loDynamicTableEntity = new DynamicTableEntity();
-            string[] laKey = loData.DataModel.GetKeyList();
             //// Use the partitionkey that came from the query
             string lsPartitionKey = loData.Get("_PartitionKey") as string;
             if (string.IsNullOrEmpty(lsPartitionKey))
             {
-                lsPartitionKey = MaxConvertLibrary.ConvertToString(typeof(object), loData.Get(loData.DataModel.StorageKey));
+                MaxBaseDataModel loBaseDataModel = loData.DataModel as MaxBaseDataModel;
+                if (null != loBaseDataModel)
+                {
+                    lsPartitionKey = MaxConvertLibrary.ConvertToString(typeof(object), loData.Get(loBaseDataModel.StorageKey));
+                }
+
                 if (string.IsNullOrEmpty(lsPartitionKey))
                 {
                     lsPartitionKey = DefaultPartitionKey;
                 }
 
+                /*
                 string lsPrimaryKeySuffix = loData.DataModel.GetPrimaryKeySuffix(loData);
                 if (!string.IsNullOrEmpty(lsPrimaryKeySuffix) && !string.IsNullOrEmpty(lsPartitionKey))
                 {
                     if (lsPartitionKey.EndsWith(lsPrimaryKeySuffix))
                     {
-                        //// The suffix has already been added, so update the storagekey property to remove it.
-                        loData.Set(loData.DataModel.StorageKey, lsPartitionKey.Substring(0, lsPartitionKey.Length - lsPrimaryKeySuffix.Length));
+                        if (null != loBaseDataModel)
+                        {
+                            //// The suffix has already been added, so update the storagekey property to remove it.
+                            loData.Set(loBaseDataModel.StorageKey, lsPartitionKey.Substring(0, lsPartitionKey.Length - lsPrimaryKeySuffix.Length));
+                        }
                     }
                     else if (lsPartitionKey.Length == DefaultPartitionKey.Length)
                     {
                         lsPartitionKey += lsPrimaryKeySuffix;
                     }
                 }
+                */
             }
 
             //// The partition key may not be the same as the StorageKey.
             //// It may have more detail so queries can use it as an Index.
             loDynamicTableEntity.PartitionKey = lsPartitionKey;
-            for (int lnK = 0; lnK < laKey.Length; lnK++)
+            foreach (string lsDataName in loData.DataModel.DataNameList)
             {
-                string lsKey = laKey[lnK];
-                if (IsStored(loData.DataModel, lsKey) || loData.GetIsChanged(lsKey))
+                if (loData.DataModel.IsStored(lsDataName) || loData.GetIsChanged(lsDataName))
                 {
-                    object loValueType = loData.DataModel.GetValueType(lsKey);
-                    object loValue = loData.Get(lsKey);
+                    object loValueType = loData.DataModel.GetValueType(lsDataName);
+                    object loValue = loData.Get(lsDataName);
                     if (null != loValue)
                     {
                         EntityProperty loProperty = null;
@@ -647,7 +660,7 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                         }
                         else if (typeof(DateTime).Equals(loValueType))
                         {
-                            DateTime ldValue = MaxConvertLibrary.ConvertToDateTime(loData.DataModel.GetType(), loData.Get(lsKey));
+                            DateTime ldValue = MaxConvertLibrary.ConvertToDateTime(loData.DataModel.GetType(), loData.Get(lsDataName));
                             if (ldValue < AzureDateTimeMin)
                             {
                                 ldValue = AzureDateTimeMin;
@@ -677,8 +690,8 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
 
                         if (null != loProperty)
                         {
-                            loData.ClearChanged(lsKey);
-                            loDynamicTableEntity.Properties.Add(lsKey, loProperty);
+                            loData.ClearChanged(lsDataName);
+                            loDynamicTableEntity.Properties.Add(lsDataName, loProperty);
                         }
                     }
                 }
@@ -700,11 +713,11 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                 {
                     lsRowKey = loData.Get(((MaxIdStringDataModel)loData.DataModel).Id).ToString().ToLowerInvariant();
                 }
-                else if (loData.DataModel is MaxRelationDataModel)
+                else if (loData.DataModel is MaxBaseRelationDataModel)
                 {
-                    lsRowKey = loData.Get(((MaxRelationDataModel)loData.DataModel).ParentId).ToString().ToLowerInvariant() +
-                        loData.Get(((MaxRelationDataModel)loData.DataModel).ChildId).ToString().ToLowerInvariant();
-                    object loRelationType = loData.Get(((MaxRelationDataModel)loData.DataModel).RelationType);
+                    lsRowKey = loData.Get(((MaxBaseRelationDataModel)loData.DataModel).ParentId).ToString().ToLowerInvariant() +
+                        loData.Get(((MaxBaseRelationDataModel)loData.DataModel).ChildId).ToString().ToLowerInvariant();
+                    object loRelationType = loData.Get(((MaxBaseRelationDataModel)loData.DataModel).RelationType);
                     if (null != loRelationType)
                     {
                         lsRowKey += loRelationType.ToString().ToLowerInvariant();
@@ -728,7 +741,12 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
             string lsPartitionKey = loData.Get("_PartitionKey") as string;
             if (string.IsNullOrEmpty(lsPartitionKey))
             {
-                lsPartitionKey = MaxConvertLibrary.ConvertToString(typeof(object), loData.Get(loData.DataModel.StorageKey));
+                MaxBaseDataModel loBaseDataModel = loData.DataModel as MaxBaseDataModel;
+                if (null != loBaseDataModel)
+                {
+                    lsPartitionKey = MaxConvertLibrary.ConvertToString(typeof(object), loData.Get(loBaseDataModel.StorageKey));
+                }
+                
                 if (lsPartitionKey != "*")
                 {
                     if (string.IsNullOrEmpty(lsPartitionKey))
@@ -736,48 +754,53 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                         lsPartitionKey = DefaultPartitionKey;
                     }
 
+                    /*
                     string lsPrimaryKeySuffix = loData.DataModel.GetPrimaryKeySuffix(loData);
                     if (!string.IsNullOrEmpty(lsPrimaryKeySuffix) && !string.IsNullOrEmpty(lsPartitionKey))
                     {
                         if (lsPartitionKey.EndsWith(lsPrimaryKeySuffix))
                         {
-                            //// The suffix has already been added, so update the storagekey property to remove it.
-                            loData.Set(loData.DataModel.StorageKey, lsPartitionKey.Substring(0, lsPartitionKey.Length - lsPrimaryKeySuffix.Length));
+                            if (null != loBaseDataModel)
+                            {
+                                //// The suffix has already been added, so update the storagekey property to remove it.
+                                loData.Set(loBaseDataModel.StorageKey, lsPartitionKey.Substring(0, lsPartitionKey.Length - lsPrimaryKeySuffix.Length));
+                            }
                         }
                         else
                         {
                             lsPartitionKey += lsPrimaryKeySuffix;
                         }
                     }
+                    */
                 }
             }
 
             TableQuery loQuery = new TableQuery();
-            string[] laKey = loData.DataModel.GetKeyList();
             if (null != laDataNameList)
             {
                 loQuery.Select(laDataNameList);
             }
             else
             {
-                loQuery.Select(laKey);
+                loQuery.Select(loData.DataModel.DataNameList);
             }
 
             string lsAzureFilter = string.Empty;
-            for (int lnK = 0; lnK < laKey.Length; lnK++)
+            foreach (string lsDataName in loData.DataModel.DataNameList)
             {
-                string lsKey = laKey[lnK];
-                if (IsStored(loData.DataModel, lsKey))
+                if (loData.DataModel.IsStored(lsDataName))
                 {
-                    bool lbIsPrimaryKey = loData.DataModel.GetPropertyAttributeSetting(lsKey, "IsPrimaryKey");
+                    bool lbIsPrimaryKey = loData.DataModel.GetAttributeSetting(lsDataName, "IsPrimaryKey");
+                    MaxBaseDataModel loBaseDataModel = loData.DataModel as MaxBaseDataModel;
+
                     //// TODO: Add filtering by StorageKey once all data has been updated to save storage key
                     //// 12/21/2016 - StorageKey is not saved in each row at this time.  Filtering is done based on PartitionKey.
-                    if (lbIsPrimaryKey && !lsKey.Equals(loData.DataModel.StorageKey))
+                    if (lbIsPrimaryKey && (null != loBaseDataModel && !lsDataName.Equals(loBaseDataModel.StorageKey)))
                     {
-                        object loKeyValue = loData.Get(lsKey);
+                        object loKeyValue = loData.Get(lsDataName);
                         if (null != loKeyValue)
                         {
-                            string lsFilterCondition = GetFilterCondition(lsKey, "=", loKeyValue, loData.DataModel);
+                            string lsFilterCondition = GetFilterCondition(lsDataName, "=", loKeyValue, loData.DataModel);
                             if (lsAzureFilter.Length > 0)
                             {
                                 lsAzureFilter = TableQuery.CombineFilters(lsAzureFilter, TableOperators.And, lsFilterCondition);
@@ -787,7 +810,7 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                                 lsAzureFilter = lsFilterCondition;
                             }
 
-                            if (loData.DataModel is MaxIdGuidDataModel && lsKey == ((MaxIdGuidDataModel)loData.DataModel).Id)
+                            if (loData.DataModel is MaxIdGuidDataModel && lsDataName == ((MaxIdGuidDataModel)loData.DataModel).Id)
                             {
                                 lsFilterCondition = GetFilterCondition("RowKey", "=", loKeyValue.ToString(), loData.DataModel);
                                 lsAzureFilter = TableQuery.CombineFilters(lsAzureFilter, TableOperators.And, lsFilterCondition);
@@ -989,22 +1012,6 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
             }
 
             return lsR;
-        }
-
-        /// <summary>
-        /// Checks to see if this data key is stored by this provider.
-        /// </summary>
-        /// <param name="loDataModel">Data model used to get the type of the key.</param>
-        /// <param name="lsKey">The key to check to see if it is stored.</param>
-        /// <returns>True if it should be stored.  False otherwise.</returns>
-        protected static bool IsStored(MaxDataModel loDataModel, string lsKey)
-        {
-            if (loDataModel.GetValueType(lsKey) != null)
-            {
-                return true;
-            }
-
-            return false;
         }
     }
 }

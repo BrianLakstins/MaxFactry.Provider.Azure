@@ -43,7 +43,7 @@ namespace MaxFactry.General.DataLayer.Provider
 	using System;
     using MaxFactry.Core;
     using MaxFactry.Base.DataLayer;
-    using MaxFactry.Base.DataLayer.Provider;
+    using MaxFactry.Base.DataLayer.Library.Provider;
 
 	/// <summary>
 	/// Provider for all Membership repositories
@@ -57,7 +57,7 @@ namespace MaxFactry.General.DataLayer.Provider
         /// <param name="loConfig">Configuration information.</param>
         public override void Initialize(string lsName, MaxIndex loConfig)
         {
-            this.DefaultContextProviderType = typeof(MaxDataContextAzureTableProvider);
+            this.DefaultContextProviderType = typeof(MaxDataContextLibraryAzureTableProvider);
             base.Initialize(lsName, loConfig);
         }
 
@@ -71,7 +71,7 @@ namespace MaxFactry.General.DataLayer.Provider
         /// <param name="lsOrderBy">Sort information.</param>
         /// <param name="lnTotal">Total matching records.</param>
         /// <returns>List of users.</returns>
-        public override MaxDataList SelectAllUserByUserName(MaxData loData, string lsUserName, int lnPageIndex, int lnPageSize, string lsOrderBy, out int lnTotal)
+        public override MaxDataList SelectAllUserByUserName(MaxData loData, string lsUserName, int lnPageIndex, int lnPageSize, string lsOrderBy)
         {
             MaxUserDataModel loDataModel = loData.DataModel as MaxUserDataModel;
             if (null == loDataModel)
@@ -83,11 +83,11 @@ namespace MaxFactry.General.DataLayer.Provider
             loDataQuery.AddFilter(loDataModel.IsDeleted, "=", false);
             if (!string.IsNullOrEmpty(lsUserName))
             {
-                loDataQuery.AddCondition("AND");
+                loDataQuery.AddAnd();
                 loDataQuery.AddFilter(loDataModel.UserName, "=", lsUserName);
 
                 // Get all the users that match the username exactly.
-                MaxDataList loDataForNameList = this.Select(loData, loDataQuery, lnPageIndex, lnPageSize, lsOrderBy, out lnTotal);
+                MaxDataList loDataForNameList = this.Select(loData, loDataQuery, lnPageIndex, lnPageSize, lsOrderBy);
                 if (loDataForNameList.Count > 0)
                 {
                     return loDataForNameList;
@@ -97,10 +97,9 @@ namespace MaxFactry.General.DataLayer.Provider
             // Username storage is case sensitive, but lookups should not need to be, so pull all users and match username case insensitive
             loDataQuery = new MaxDataQuery();
             loDataQuery.AddFilter(loDataModel.IsDeleted, "=", false);
-            MaxDataList loDataAllList = this.Select(loData, loDataQuery, lnPageIndex, lnPageSize, lsOrderBy, out lnTotal);
+            MaxDataList loDataAllList = this.Select(loData, loDataQuery, lnPageIndex, lnPageSize, lsOrderBy);
             MaxDataList loR = new MaxDataList(loDataModel);
             //// Filter by username
-            lnTotal = 0;
             for (int lnD = 0; lnD < loDataAllList.Count; lnD++)
             {
                 MaxData loDataOut = loDataAllList[lnD];
@@ -121,11 +120,11 @@ namespace MaxFactry.General.DataLayer.Provider
 
                 if (lbIsMatch)
                 {
-                    lnTotal += 1;
                     loR.Add(loDataOut);
                 }
             }
 
+            loR.Total = loR.Count;
             return loR;
         }
 
@@ -139,7 +138,7 @@ namespace MaxFactry.General.DataLayer.Provider
         /// <param name="lsOrderBy">Sort information.</param>
         /// <param name="lnTotal">Total matching records.</param>
         /// <returns>List of users.</returns>
-        public override MaxDataList SelectAllUserByEmail(MaxData loData, string lsEmail, int lnPageIndex, int lnPageSize, string lsOrderBy, out int lnTotal)
+        public override MaxDataList SelectAllUserByEmail(MaxData loData, string lsEmail, int lnPageIndex, int lnPageSize, string lsOrderBy)
         {
             MaxUserDataModel loDataModel = loData.DataModel as MaxUserDataModel;
             if (null == loDataModel)
@@ -149,11 +148,11 @@ namespace MaxFactry.General.DataLayer.Provider
 
             MaxDataQuery loDataQuery = new MaxDataQuery();
             loDataQuery.AddFilter(loDataModel.IsDeleted, "=", false);
-            loDataQuery.AddCondition("AND");
+            loDataQuery.AddAnd();
             loDataQuery.AddFilter(loDataModel.Email, "=", lsEmail);
 
             // Get all the users that match the email exactly.
-            MaxDataList loDataList = this.Select(loData, loDataQuery, lnPageIndex, lnPageSize, lsOrderBy, out lnTotal);
+            MaxDataList loDataList = this.Select(loData, loDataQuery, lnPageIndex, lnPageSize, lsOrderBy);
             if (loDataList.Count > 0)
             {
                 return loDataList;
@@ -162,21 +161,20 @@ namespace MaxFactry.General.DataLayer.Provider
             // Email storage is case sensitive, but lookups should not need to be, so pull all users and match username case insensitive
             loDataQuery = new MaxDataQuery();
             loDataQuery.AddFilter(loDataModel.IsDeleted, "=", false);
-            MaxDataList loDataAllList = this.Select(loData, loDataQuery, lnPageIndex, lnPageSize, lsOrderBy, out lnTotal);
+            MaxDataList loDataAllList = this.Select(loData, loDataQuery, lnPageIndex, lnPageSize, lsOrderBy);
 
             // Filter by email
-            lnTotal = 0;
             for (int lnD = 0; lnD < loDataAllList.Count; lnD++)
             {
                 MaxData loDataOut = loDataAllList[lnD];
                 string lsEmailCheck = MaxConvertLibrary.ConvertToString(typeof(object), loDataOut.Get(loDataModel.Email));
                 if (lsEmailCheck.Equals(lsEmail, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    lnTotal += 1;
                     loDataList.Add(loDataOut);
                 }
             }
 
+            loDataList.Total = loDataList.Count;
             return loDataList;
         }
 
@@ -190,7 +188,7 @@ namespace MaxFactry.General.DataLayer.Provider
         /// <param name="lsOrderBy">Sort information.</param>
         /// <param name="lnTotal">Total matching records.</param>
         /// <returns>List of users.</returns>
-        public override MaxDataList SelectAllUserByUserNamePartial(MaxData loData, string lsUserName, int lnPageIndex, int lnPageSize, string lsOrderBy, out int lnTotal)
+        public override MaxDataList SelectAllUserByUserNamePartial(MaxData loData, string lsUserName, int lnPageIndex, int lnPageSize, string lsOrderBy)
         {
             MaxUserDataModel loDataModel = loData.DataModel as MaxUserDataModel;
             if (null == loDataModel)
@@ -202,21 +200,21 @@ namespace MaxFactry.General.DataLayer.Provider
             loDataQuery.AddFilter(loDataModel.IsDeleted, "=", false);
 
             // Get all the users
-            MaxDataList loDataAllList = this.Select(loData, loDataQuery, lnPageIndex, lnPageSize, lsOrderBy, out lnTotal);
+            MaxDataList loDataAllList = this.Select(loData, loDataQuery, lnPageIndex, lnPageSize, lsOrderBy);
             
             // Filter by username
             MaxDataList loDataList = new MaxDataList(loDataModel);
-            lnTotal = 0;
             for (int lnD = 0; lnD < loDataAllList.Count; lnD++)
             {
                 MaxData loDataOut = loDataAllList[lnD];
                 string lsUserNameCheck = MaxConvertLibrary.ConvertToString(typeof(object), loDataOut.Get(loDataModel.UserName));
                 if (lsUserNameCheck.ToLowerInvariant().Contains(lsUserName.ToLowerInvariant()))
                 {
-                    lnTotal += 1;
                     loDataList.Add(loDataOut);
                 }
             }
+
+            loDataList.Total = loDataList.Count;
 
             return loDataList;
         }
@@ -231,7 +229,7 @@ namespace MaxFactry.General.DataLayer.Provider
         /// <param name="lsOrderBy">Sort information.</param>
         /// <param name="lnTotal">Total matching records.</param>
         /// <returns>List of users.</returns>
-        public override MaxDataList SelectAllUserByEmailPartial(MaxData loData, string lsEmail, int lnPageIndex, int lnPageSize, string lsOrderBy, out int lnTotal)
+        public override MaxDataList SelectAllUserByEmailPartial(MaxData loData, string lsEmail, int lnPageIndex, int lnPageSize, string lsOrderBy)
         {
             MaxUserDataModel loDataModel = loData.DataModel as MaxUserDataModel;
             if (null == loDataModel)
@@ -243,22 +241,21 @@ namespace MaxFactry.General.DataLayer.Provider
             loDataQuery.AddFilter(loDataModel.IsDeleted, "=", false);
 
             // Get all the users that match the App Id.
-            MaxDataList loDataAllList = this.Select(loData, loDataQuery, lnPageIndex, lnPageSize, lsOrderBy, out lnTotal);
+            MaxDataList loDataAllList = this.Select(loData, loDataQuery, lnPageIndex, lnPageSize, lsOrderBy);
             
             // Filter by email
             MaxDataList loDataList = new MaxDataList(loDataModel);
-            lnTotal = 0;
             for (int lnD = 0; lnD < loDataAllList.Count; lnD++)
             {
                 MaxData loDataOut = loDataAllList[lnD];
                 string lsEmailCheck = MaxConvertLibrary.ConvertToString(typeof(object), loDataOut.Get(loDataModel.Email));
                 if (lsEmailCheck.ToLowerInvariant().Contains(lsEmail.ToLowerInvariant()))
                 {
-                    lnTotal += 1;
                     loDataList.Add(loDataOut);
                 }
             }
 
+            loDataList.Total = loDataList.Count;
             return loDataList;
         }
 
@@ -276,15 +273,14 @@ namespace MaxFactry.General.DataLayer.Provider
                 throw new MaxException("Error casting [" + loData.DataModel.GetType() + "] for DataModel");
             }
 
-            int lnR = 0;
             MaxDataQuery loDataQuery = new MaxDataQuery();
             loDataQuery.AddFilter(loDataModel.IsDeleted, "=", false);
 
             // Get all the users that match the App Id.
-            MaxDataList loDataAllList = this.Select(loData, loDataQuery, 0, 0, string.Empty, out lnR);
-            
+            MaxDataList loDataAllList = this.Select(loData, loDataQuery, 0, 0, string.Empty);
+
             // Filter by username
-            lnR = 0;
+            int lnR = 0;
             for (int lnD = 0; lnD < loDataAllList.Count; lnD++)
             {
                 MaxData loDataOut = loDataAllList[lnD];

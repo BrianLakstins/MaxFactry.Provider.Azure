@@ -1,4 +1,4 @@
-﻿// <copyright file="MaxDataContextStreamAzureBlobProvider.cs" company="Lakstins Family, LLC">
+﻿// <copyright file="MaxStreamLibraryAzureBlobProvider.cs" company="Lakstins Family, LLC">
 // Copyright (c) Brian A. Lakstins (http://www.lakstins.com/brian/)
 // </copyright>
 
@@ -28,26 +28,21 @@
 #region Change Log
 // <changelog>
 // <change date="9/20/2023" author="Brian A. Lakstins" description="Initial creation">
+// <change date="3/31/2024" author="Brian A. Lakstins" description="Updated namespace and class name to match MaxFactry.Base naming conventions.">
 // </changelog>
 #endregion
 
-namespace MaxFactry.Base.DataLayer.Provider
+namespace MaxFactry.Base.DataLayer.Library.Provider
 {
-    using System;
     using System.IO;
     using MaxFactry.Base.DataLayer;
-    using MaxFactry.Base.DataLayer.Library.Provider;
     using MaxFactry.Core;
     using MaxFactry.Provider.AzureProvider.DataLayer;
-    using Microsoft.WindowsAzure.Storage;
-    using Microsoft.WindowsAzure.Storage.Auth;
-    using Microsoft.WindowsAzure.Storage.Blob;
-    using Microsoft.WindowsAzure.Storage.Shared.Protocol;
 
     /// <summary>
-    /// Data Context used to work with data on Azure and streams stored on Azure Blob
+    /// Stream Library provider used to work with data on Azure and streams stored on Azure Blob
     /// </summary>
-    public class MaxDataContextStreamAzureBlobProvider : MaxFactry.Base.DataLayer.Provider.MaxDataContextStreamLibraryDefaultProvider
+    public class MaxStreamLibraryAzureBlobProvider : MaxStreamLibraryDefaultProvider
     {
         /// <summary>
         /// The account name to connect to the Azure Table Storage service

@@ -28,13 +28,13 @@
 #region Change Log
 // <changelog>
 // <change date="7/24/2023" author="Brian A. Lakstins" description="Initial creation">
+// <change date="3/31/2024" author="Brian A. Lakstins" description="Updated to match MaxFactry.Base naming conventions.">
 // </changelog>
 #endregion
 
 namespace MaxFactry.Provider.AzureProvider
 {
-    using System;
-    using MaxFactry.Base.DataLayer.Provider;
+    using MaxFactry.Base.DataLayer.Library.Provider;
     using MaxFactry.Core;
     using MaxFactry.Core.Provider;
 
@@ -91,9 +91,9 @@ namespace MaxFactry.Provider.AzureProvider
         /// <param name="loConfig">The configuration for the default repository provider.</param>
         public virtual void SetProviderConfiguration(MaxIndex loConfig)
         {
-            loConfig.Add(typeof(MaxDataContextStreamAzureBlobProvider).Name, typeof(MaxDataContextStreamAzureBlobProvider));
-            loConfig.Add(typeof(MaxDataContextAzureSqlProvider).Name, typeof(MaxDataContextAzureSqlProvider));
-            loConfig.Add(typeof(MaxDataContextAzureTableProvider).Name, typeof(MaxDataContextAzureTableProvider));
+            loConfig.Add(typeof(MaxStreamLibraryAzureBlobProvider).Name, typeof(MaxStreamLibraryAzureBlobProvider));
+            loConfig.Add(typeof(MaxDataContextLibraryAzureSqlProvider).Name, typeof(MaxDataContextLibraryAzureSqlProvider));
+            loConfig.Add(typeof(MaxDataContextLibraryAzureTableProvider).Name, typeof(MaxDataContextLibraryAzureTableProvider));
             //// Use in the app MaxStartup with the some real keys or connection strings
             //this.SetProviderConfigurationInstrumentationKey(loConfig, string.Empty, string.Empty);
             //this.SetProviderConfigurationConnectionString(loConfig, string.Empty, string.Empty);
@@ -152,7 +152,7 @@ namespace MaxFactry.Provider.AzureProvider
 
         public virtual void RegisterProviderAzureBlobProvider()
         {
-            MaxFactry.Base.DataLayer.MaxDataContextStreamLibrary.Instance.ProviderSet(typeof(MaxDataContextStreamAzureBlobProvider));
+            MaxFactry.Base.DataLayer.Library.MaxStreamLibrary.Instance.ProviderSet(typeof(MaxStreamLibraryAzureBlobProvider));
         }
 
         public virtual void RegisterProviderAzureApplicationInsightProvider()

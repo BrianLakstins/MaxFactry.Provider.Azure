@@ -1,4 +1,4 @@
-﻿// <copyright file="MaxDataContextAzureTableProvider.cs" company="Lakstins Family, LLC">
+﻿// <copyright file="MaxDataContextLibraryAzureTableProvider.cs" company="Lakstins Family, LLC">
 // Copyright (c) Brian A. Lakstins (http://www.lakstins.com/brian/)
 // </copyright>
 
@@ -28,26 +28,21 @@
 #region Change Log
 // <changelog>
 // <change date="5/29/2021" author="Brian A. Lakstins" description="Initial Creation based on MaxDataContextAzureTableProvider">
+// <change date="3/31/2024" author="Brian A. Lakstins" description="Updated namespace and class name to match MaxFactry.Base naming conventions.">
 // </changelog>
 #endregion Change Log
 
-namespace MaxFactry.Base.DataLayer.Provider
+namespace MaxFactry.Base.DataLayer.Library.Provider
 {
-    using System;
-    using System.IO;
     using MaxFactry.Core;
     using MaxFactry.Provider.AzureProvider.DataLayer;
     using MaxFactry.Base.DataLayer;
-    using Microsoft.WindowsAzure.Storage;
-    using Microsoft.WindowsAzure.Storage.Auth;
-    using Microsoft.WindowsAzure.Storage.Blob;
-    using Microsoft.WindowsAzure.Storage.Shared.Protocol;
     using Microsoft.WindowsAzure.Storage.Table;
 
     /// <summary>
     /// Data Context used to work with data in Azure Tables and Stream storage on Azure Blob
     /// </summary>
-    public class MaxDataContextAzureTableProvider : MaxDataContextDefaultProvider
+    public class MaxDataContextLibraryAzureTableProvider : MaxDataContextLibraryDefaultProvider
     {
         /// <summary>
         /// The account name to connect to the Azure Table Storage service
@@ -139,13 +134,21 @@ namespace MaxFactry.Base.DataLayer.Provider
             {
                 MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelect", MaxFactry.Core.MaxEnumGroup.LogDebug, "Special case {DataStorageName}", loData.DataModel.DataStorageName));
                 //// Set to select all matching records regardless of storage key
-                loData.Set(loData.DataModel.StorageKey, "*");
+                MaxBaseDataModel loBaseDataModel = loData.DataModel as MaxBaseDataModel;
+                if (loBaseDataModel != null)
+                {
+                    loData.Set(loBaseDataModel.StorageKey, "*");
+                }
 
                 //// Determine the storage key to match to the first part of the Partition Key
-                string lsStorageKey = MaxConvertLibrary.ConvertToString(typeof(object), loData.Get(loData.DataModel.StorageKey));
-                if (string.IsNullOrEmpty(lsStorageKey))
+                string lsStorageKey = string.Empty;
+                if (loBaseDataModel != null)
                 {
-                    lsStorageKey = MaxAzureTableLibrary.DefaultPartitionKey;
+                    lsStorageKey = MaxConvertLibrary.ConvertToString(typeof(object), loData.Get(loBaseDataModel.StorageKey));
+                    if (string.IsNullOrEmpty(lsStorageKey))
+                    {
+                        lsStorageKey = MaxAzureTableLibrary.DefaultPartitionKey;
+                    }
                 }
 
                 loQuery = MaxAzureTableLibrary.GetTableQueryForSelect(loData, loDataQuery, laDataNameList);
@@ -154,7 +157,7 @@ namespace MaxFactry.Base.DataLayer.Provider
                 for (int lnD = 0; lnD < loDataAllList.Count; lnD++)
                 {
                     string lsPartitionKey = loDataAllList[lnD].Get("_PartitionKey") as string;
-                    if (null != lsPartitionKey && lsPartitionKey.Length > 0 && lsPartitionKey.StartsWith(lsStorageKey))
+                    if (null != lsPartitionKey && lsPartitionKey.Length > 0 && (!string.IsNullOrEmpty(lsStorageKey) && lsPartitionKey.StartsWith(lsStorageKey)))
                     {
                         MaxData loDataMatch = loDataAllList[lnD].Clone();
                         loDataList.Add(loDataMatch);
@@ -272,23 +275,23 @@ namespace MaxFactry.Base.DataLayer.Provider
         /// <summary>
         /// Selects all data from the data storage name for the specified type.
         /// </summary>
-        /// <param name="lsDataStorageName">Name of the data storage (table name).</param>
+        /// <param name="loData">Name of the data storage (table name).</param>
         /// <param name="laDataNameList">list of fields to return from select</param>
         /// <returns>List of data elements with a base data model.</returns>
-        public override MaxDataList SelectAll(string lsDataStorageName, params string[] laDataNameList)
+        public override MaxDataList SelectAll(MaxData loData, params string[] laDataNameList)
         {
             System.Diagnostics.Stopwatch loWatch = System.Diagnostics.Stopwatch.StartNew();
-            MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelectAllStart", MaxFactry.Core.MaxEnumGroup.LogDebug, "select all {DataStorageName}", lsDataStorageName));
-            MaxDataList loList = MaxAzureTableLibrary.SelectAll(this.AccountName, this.AccountKey, lsDataStorageName);
-            MaxFactry.Core.MaxLogLibrary.Log(MaxFactry.Core.MaxEnumGroup.LogInfo, "Select All [" + lsDataStorageName + "] in [" + loWatch.ElapsedMilliseconds.ToString() + "] milliseconds.", "MaxAzureTableDataContextProvider");
+            MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelectAllStart", MaxFactry.Core.MaxEnumGroup.LogDebug, "select all {DataStorageName}", loData.DataModel.DataStorageName));
+            MaxDataList loList = MaxAzureTableLibrary.SelectAll(this.AccountName, this.AccountKey, loData);
+            MaxFactry.Core.MaxLogLibrary.Log(MaxFactry.Core.MaxEnumGroup.LogInfo, "Select All [" + loData.DataModel.DataStorageName + "] in [" + loWatch.ElapsedMilliseconds.ToString() + "] milliseconds.", "MaxAzureTableDataContextProvider");
             loWatch.Stop();
             if (loWatch.Elapsed.TotalMilliseconds > 1000)
             {
-                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelectAllEnd", MaxFactry.Core.MaxEnumGroup.LogWarning, "select all {DataStorageName} {RowCount} in {Milliseconds}", lsDataStorageName, loList.Count, loWatch.Elapsed.TotalMilliseconds));
+                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelectAllEnd", MaxFactry.Core.MaxEnumGroup.LogWarning, "select all {DataStorageName} {RowCount} in {Milliseconds}", loData.DataModel.DataStorageName, loList.Count, loWatch.Elapsed.TotalMilliseconds));
             }
             else
             {
-                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelectAllEnd", MaxFactry.Core.MaxEnumGroup.LogDebug, "select all {DataStorageName} {RowCount} in {Milliseconds}", lsDataStorageName, loList.Count, loWatch.Elapsed.TotalMilliseconds));
+                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelectAllEnd", MaxFactry.Core.MaxEnumGroup.LogDebug, "select all {DataStorageName} {RowCount} in {Milliseconds}", loData.DataModel.DataStorageName, loList.Count, loWatch.Elapsed.TotalMilliseconds));
             }
 
             return loList;

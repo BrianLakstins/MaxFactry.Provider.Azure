@@ -1,4 +1,4 @@
-﻿// <copyright file="MaxDataContextAzureSqlProvider.cs" company="Lakstins Family, LLC">
+﻿// <copyright file="MaxDataContextLibraryAzureSqlProvider.cs" company="Lakstins Family, LLC">
 // Copyright (c) Brian A. Lakstins (http://www.lakstins.com/brian/)
 // </copyright>
 
@@ -28,17 +28,18 @@
 #region Change Log
 // <changelog>
 // <change date="9/20/2023" author="Brian A. Lakstins" description="Initial creation">
+// <change date="3/31/2024" author="Brian A. Lakstins" description="Updated namespace and class name to match MaxFactry.Base naming conventions.">
 // </changelog>
 #endregion
 
-namespace MaxFactry.Base.DataLayer.Provider
+namespace MaxFactry.Base.DataLayer.Library.Provider
 {
     using MaxFactry.Core;
 
     /// <summary>
     /// Data Context used to work with database data on Azure SQL
     /// </summary>
-    public class MaxDataContextAzureSqlProvider : MaxDataContextMSSqlProvider
+    public class MaxDataContextLibraryAzureSqlProvider : MaxDataContextLibraryMSSqlProvider
     {
         /// <summary>
         /// Initializes the provider
