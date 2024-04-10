@@ -71,7 +71,7 @@ namespace MaxFactry.General.DataLayer.Provider
         /// <param name="lsOrderBy">Sort information.</param>
         /// <param name="lnTotal">Total matching records.</param>
         /// <returns>List of users.</returns>
-        public override MaxDataList SelectAllUserByUserName(MaxData loData, string lsUserName, int lnPageIndex, int lnPageSize, string lsOrderBy)
+        public MaxDataList SelectAllUserByUserName(MaxData loData, string lsUserName, int lnPageIndex, int lnPageSize, string lsOrderBy)
         {
             MaxUserDataModel loDataModel = loData.DataModel as MaxUserDataModel;
             if (null == loDataModel)
@@ -138,7 +138,7 @@ namespace MaxFactry.General.DataLayer.Provider
         /// <param name="lsOrderBy">Sort information.</param>
         /// <param name="lnTotal">Total matching records.</param>
         /// <returns>List of users.</returns>
-        public override MaxDataList SelectAllUserByEmail(MaxData loData, string lsEmail, int lnPageIndex, int lnPageSize, string lsOrderBy)
+        public MaxDataList SelectAllUserByEmail(MaxData loData, string lsEmail, int lnPageIndex, int lnPageSize, string lsOrderBy)
         {
             MaxUserDataModel loDataModel = loData.DataModel as MaxUserDataModel;
             if (null == loDataModel)
@@ -188,7 +188,7 @@ namespace MaxFactry.General.DataLayer.Provider
         /// <param name="lsOrderBy">Sort information.</param>
         /// <param name="lnTotal">Total matching records.</param>
         /// <returns>List of users.</returns>
-        public override MaxDataList SelectAllUserByUserNamePartial(MaxData loData, string lsUserName, int lnPageIndex, int lnPageSize, string lsOrderBy)
+        public MaxDataList SelectAllUserByUserNamePartial(MaxData loData, string lsUserName, int lnPageIndex, int lnPageSize, string lsOrderBy)
         {
             MaxUserDataModel loDataModel = loData.DataModel as MaxUserDataModel;
             if (null == loDataModel)
@@ -229,7 +229,7 @@ namespace MaxFactry.General.DataLayer.Provider
         /// <param name="lsOrderBy">Sort information.</param>
         /// <param name="lnTotal">Total matching records.</param>
         /// <returns>List of users.</returns>
-        public override MaxDataList SelectAllUserByEmailPartial(MaxData loData, string lsEmail, int lnPageIndex, int lnPageSize, string lsOrderBy)
+        public MaxDataList SelectAllUserByEmailPartial(MaxData loData, string lsEmail, int lnPageIndex, int lnPageSize, string lsOrderBy)
         {
             MaxUserDataModel loDataModel = loData.DataModel as MaxUserDataModel;
             if (null == loDataModel)
@@ -265,7 +265,7 @@ namespace MaxFactry.General.DataLayer.Provider
         /// <param name="loData">The user data.</param>
         /// <param name="lsUserName">The username of the user.</param>
         /// <returns>Count of users.</returns>
-        public override int GetUserCountByUserName(MaxData loData, string lsUserName)
+        public int GetUserCountByUserName(MaxData loData, string lsUserName)
         {
             MaxUserDataModel loDataModel = loData.DataModel as MaxUserDataModel;
             if (null == loDataModel)
