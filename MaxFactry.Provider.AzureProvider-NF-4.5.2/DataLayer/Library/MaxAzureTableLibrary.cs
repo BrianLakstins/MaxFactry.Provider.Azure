@@ -55,6 +55,7 @@
 // <change date="10/23/2019" author="Brian A. Lakstins" description="Updates to allow some blobs to be private and some to be public.">
 // <change date="12/11/2019" author="Brian A. Lakstins" description="Tweaks to query processes.  Allow selecting  records without using Partition Key as part of key for query.">
 // <change date="3/31/2024" author="Brian A. Lakstins" description="Updated for changes to dependency classes.">
+// <change date="5/13/2025" author="Brian A. Lakstins" description="Updated for new Id based class.">
 // </changelog>
 #endregion Change Log
 
@@ -842,6 +843,11 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                         MaxDataFilter loDataFilter = (MaxDataFilter)loStatement;
                         lsDataQuery += GetFilterCondition(loDataFilter.Name, loDataFilter.Operator, loDataFilter.Value, loData.DataModel);
                         if (loData.DataModel is MaxIdGuidDataModel && loDataFilter.Name == ((MaxIdGuidDataModel)loData.DataModel).Id)
+                        {
+                            string lsRowKeyFilterCondition = GetFilterCondition("RowKey", "=", loDataFilter.Value.ToString(), loData.DataModel);
+                            lsDataQuery = TableQuery.CombineFilters(lsDataQuery, TableOperators.And, lsRowKeyFilterCondition);
+                        }
+                        else if (loData.DataModel is MaxBaseGuidKeyDataModel && loDataFilter.Name == ((MaxBaseGuidKeyDataModel)loData.DataModel).Id)
                         {
                             string lsRowKeyFilterCondition = GetFilterCondition("RowKey", "=", loDataFilter.Value.ToString(), loData.DataModel);
                             lsDataQuery = TableQuery.CombineFilters(lsDataQuery, TableOperators.And, lsRowKeyFilterCondition);
