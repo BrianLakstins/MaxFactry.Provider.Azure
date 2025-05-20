@@ -291,54 +291,62 @@ namespace MaxFactry.Core.Provider
                 Exception loExceptionToLog = null;
                 Dictionary<string, string> loPropertyIndex = new Dictionary<string, string>();
                 Dictionary<string, double> loMetricIndex = new Dictionary<string, double>();
-                if (null != loLogEntry.Params)
+                try
                 {
-                    for (int lnP = 0; lnP < loLogEntry.Params.Length; lnP++)
+                    if (null != loLogEntry.Params)
                     {
-                        if (loLogEntry.Params[lnP] is Exception)
+                        for (int lnP = 0; lnP < loLogEntry.Params.Length; lnP++)
                         {
-                            loExceptionToLog = loLogEntry.Params[lnP] as Exception;
-                        }
-                        else if (loLogEntry.Params[lnP] is MaxIndex)
-                        {
-                            MaxIndex loMaxIndex = loLogEntry.Params[lnP] as MaxIndex;
-                            string[] laKey = loMaxIndex.GetSortedKeyList();
-                            foreach (string lsKey in laKey)
+                            if (loLogEntry.Params[lnP] is Exception)
                             {
-                                loPropertyIndex.Add(lsKey, MaxConvertLibrary.ConvertToString(typeof(object), loMaxIndex[lsKey]));
+                                loExceptionToLog = loLogEntry.Params[lnP] as Exception;
+                            }
+                            else if (loLogEntry.Params[lnP] is MaxIndex)
+                            {
+                                MaxIndex loMaxIndex = loLogEntry.Params[lnP] as MaxIndex;
+                                string[] laKey = loMaxIndex.GetSortedKeyList();
+                                foreach (string lsKey in laKey)
+                                {
+                                    loPropertyIndex.Add(lnP.ToString() + "_" + lsKey, MaxConvertLibrary.ConvertToString(typeof(object), loMaxIndex[lsKey]));
+                                }
+                            }
+                            else
+                            {
+                                loPropertyIndex.Add(lnP.ToString(), MaxConvertLibrary.ConvertToString(typeof(object), loLogEntry.Params[lnP]));
                             }
                         }
-                        else
-                        {
-                            loPropertyIndex.Add(lnP.ToString(), MaxConvertLibrary.ConvertToString(typeof(object), loLogEntry.Params[lnP]));
-                        }
+                    }
+
+                    loPropertyIndex.Add("MessageTemplate", loLogEntry.MessageTemplate);
+                    loPropertyIndex.Add("Message", loLogEntry.Message);
+                    loPropertyIndex.Add("Timestamp", loLogEntry.Timestamp.ToString());
+                    loPropertyIndex.Add("Level", loLogEntry.Level.ToString());
+                    string lsName = loLogEntry.Name;
+                    if (string.IsNullOrEmpty(lsName))
+                    {
+                        lsName = loLogEntry.Message;
+                    }
+
+                    if (null != loExceptionToLog && MaxEnumGroup.LogEmergency <= loLogEntry.Level)
+                    {
+                        loClient.TrackException(loExceptionToLog, loPropertyIndex, loMetricIndex);
+                        loClient.Flush();
+                    }
+                    else if (MaxEnumGroup.LogStatic < loLogEntry.Level && loLogEntry.Level < MaxEnumGroup.LogDebug)
+                    {
+                        loClient.TrackEvent(lsName, loPropertyIndex, loMetricIndex);
+                    }
+
+                    if (loLogEntry.MessageTemplate.Contains("Application Shutdown"))
+                    {
+                        loClient.Flush();
+                        this.StopPerformanceCounterLogging();
                     }
                 }
-
-                loPropertyIndex.Add("MessageTemplate", loLogEntry.MessageTemplate);
-                loPropertyIndex.Add("Message", loLogEntry.Message);
-                loPropertyIndex.Add("Timestamp", loLogEntry.Timestamp.ToString());
-                loPropertyIndex.Add("Level", loLogEntry.Level.ToString());
-                string lsName = loLogEntry.Name;
-                if (string.IsNullOrEmpty(lsName))
+                catch (Exception loException)
                 {
-                    lsName = loLogEntry.Message;
-                }
-
-                if (null != loExceptionToLog && MaxEnumGroup.LogEmergency <= loLogEntry.Level)
-                {
-                    loClient.TrackException(loExceptionToLog, loPropertyIndex, loMetricIndex);
+                    loClient.TrackException(loException, loPropertyIndex, loMetricIndex);
                     loClient.Flush();
-                }
-                else if (MaxEnumGroup.LogStatic < loLogEntry.Level && loLogEntry.Level < MaxEnumGroup.LogDebug)
-                {
-                    loClient.TrackEvent(lsName, loPropertyIndex, loMetricIndex);
-                }
-
-                if (loLogEntry.MessageTemplate.Contains("Application Shutdown"))
-                {
-                    loClient.Flush();
-                    this.StopPerformanceCounterLogging();
                 }
             }
         }
