@@ -29,6 +29,7 @@
 // <changelog>
 // <change date="5/29/2021" author="Brian A. Lakstins" description="Initial Creation based on MaxDataContextAzureTableProvider">
 // <change date="3/31/2024" author="Brian A. Lakstins" description="Updated namespace and class name to match MaxFactry.Base naming conventions.">
+// <change date="5/23/2025" author="Brian A. Lakstins" description="Remove stream handling methods and integrate stream handling using StreamLibrary">
 // </changelog>
 #endregion Change Log
 
@@ -113,16 +114,40 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
         }
 
         /// <summary>
-        /// Selects data from the database.
+        /// Selects all data
         /// </summary>
-        /// <param name="loData">Element with data used in the filter.</param>
-        /// <param name="loDataQuery">Query information to filter results.</param>
-        /// <param name="lnPageIndex">Page to return.</param>
-        /// <param name="lnPageSize">Items per page.</param>
-        /// <param name="lsOrderBy">Sort information</param>
-        /// <param name="lnTotal">Total items found.</param>
-        /// <param name="laDataNameList">list of fields to return from select.</param>
-        /// <returns>List of data from select.</returns>
+        /// <param name="loData">Data to use as definition</param>
+        /// <param name="laDataNameList">Names of fields to return</param>
+        /// <returns>List of data that is stored</returns>
+        public override MaxDataList SelectAll(MaxData loData, params string[] laDataNameList)
+        {
+            System.Diagnostics.Stopwatch loWatch = System.Diagnostics.Stopwatch.StartNew();
+            MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelectAllStart", MaxFactry.Core.MaxEnumGroup.LogDebug, "select all {DataStorageName}", loData.DataModel.DataStorageName));
+            MaxDataList loList = MaxAzureTableLibrary.SelectAll(this.AccountName, this.AccountKey, loData);
+            MaxFactry.Core.MaxLogLibrary.Log(MaxFactry.Core.MaxEnumGroup.LogInfo, "Select All [" + loData.DataModel.DataStorageName + "] in [" + loWatch.ElapsedMilliseconds.ToString() + "] milliseconds.", "MaxAzureTableDataContextProvider");
+            loWatch.Stop();
+            if (loWatch.Elapsed.TotalMilliseconds > 1000)
+            {
+                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelectAllEnd", MaxFactry.Core.MaxEnumGroup.LogWarning, "select all {DataStorageName} {RowCount} in {Milliseconds}", loData.DataModel.DataStorageName, loList.Count, loWatch.Elapsed.TotalMilliseconds));
+            }
+            else
+            {
+                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelectAllEnd", MaxFactry.Core.MaxEnumGroup.LogDebug, "select all {DataStorageName} {RowCount} in {Milliseconds}", loData.DataModel.DataStorageName, loList.Count, loWatch.Elapsed.TotalMilliseconds));
+            }
+
+            return loList;
+        }
+
+        /// <summary>
+        /// Selects data
+        /// </summary>
+        /// <param name="loData">Data to use as definition</param>
+        /// <param name="loDataQuery">Filter for the query</param>
+        /// <param name="lnPageIndex">Page number of the data</param>
+        /// <param name="lnPageSize">Size of the page</param>
+        /// <param name="lsOrderBy">Data field used to sort</param>
+        /// <param name="laDataNameList">Names of fields to return</param>
+        /// <returns>List of data that matches the query parameters</returns>
         public override MaxDataList Select(MaxData loData, MaxDataQuery loDataQuery, int lnPageIndex, int lnPageSize, string lsOrderBy, out int lnTotal, params string[] laDataNameList)
         {
             System.Diagnostics.Stopwatch loWatch = System.Diagnostics.Stopwatch.StartNew();
@@ -183,11 +208,11 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
         }
 
         /// <summary>
-        /// Gets the number of records that match the filter.
+        /// Selects a count of records
         /// </summary>
-        /// <param name="loData">Element with data used in the filter.</param>
-        /// <param name="loDataQuery">Query information to filter results.</param>
-        /// <returns>number of records that match.</returns>
+        /// <param name="loData">Data to use as definition</param>
+        /// <param name="loDataQuery">Filter for the query</param>
+        /// <returns>Count that matches the query parameters</returns>
         public override int SelectCount(MaxData loData, MaxDataQuery loDataQuery)
         {
             string[] laFields = new string[] { "RowKey" };
@@ -204,97 +229,123 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
         }
 
         /// <summary>
-        /// Inserts a new data element.
+        /// Inserts a new list of elements
         /// </summary>
-        /// <param name="loDataList">The list of data objects to insert.</param>
-        /// <returns>The data that was inserted.</returns>
+        /// <param name="loDataList">The list of elements</param>
+        /// <returns>Flag based status code indicating level of success.</returns>
         public override int Insert(MaxDataList loDataList)
         {
+            int lnR = 0;
             System.Diagnostics.Stopwatch loWatch = System.Diagnostics.Stopwatch.StartNew();
-            MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableInsertStart", MaxFactry.Core.MaxEnumGroup.LogDebug, "insert {DataStorageName} for {DataCount}", loDataList.DataModel.DataStorageName, loDataList.Count));
-            int lnR = MaxAzureTableLibrary.Insert(this.AccountName, this.AccountKey, loDataList);
-            loWatch.Stop();
-            if (loWatch.Elapsed.TotalMilliseconds > 100)
+            for (int lnD = 0; lnD < loDataList.Count && lnR == 0; lnD++)
             {
-                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableInsertEnd", MaxFactry.Core.MaxEnumGroup.LogWarning, "insert {DataStorageName} {RowCount} for {DataCount} in {Milliseconds}", loDataList.DataModel.DataStorageName, lnR, loDataList.Count, loWatch.Elapsed.TotalMilliseconds));
+                MaxData loData = loDataList[lnD];
+                foreach (string lsDataName in loData.DataModel.DataNameStreamList)
+                {
+                    int lnReturn = MaxStreamLibrary.StreamSave(loData, lsDataName);
+                    if ((lnReturn & 1) != 0)
+                    {
+                        lnR |= 2; //// Error saving stream
+                    }
+                }
             }
-            else
+
+            if (lnR == 0)
             {
-                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableInsertEnd", MaxFactry.Core.MaxEnumGroup.LogDebug, "insert {DataStorageName} {RowCount} for {DataCount} in {Milliseconds}", loDataList.DataModel.DataStorageName, lnR, loDataList.Count, loWatch.Elapsed.TotalMilliseconds));
+                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableInsertStart", MaxFactry.Core.MaxEnumGroup.LogDebug, "insert {DataStorageName} for {DataCount}", loDataList.DataModel.DataStorageName, loDataList.Count));
+                lnR = MaxAzureTableLibrary.Insert(this.AccountName, this.AccountKey, loDataList);
+                loWatch.Stop();
+                if (loWatch.Elapsed.TotalMilliseconds > 100)
+                {
+                    MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableInsertEnd", MaxFactry.Core.MaxEnumGroup.LogWarning, "insert {DataStorageName} {RowCount} for {DataCount} in {Milliseconds}", loDataList.DataModel.DataStorageName, lnR, loDataList.Count, loWatch.Elapsed.TotalMilliseconds));
+                }
+                else
+                {
+                    MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableInsertEnd", MaxFactry.Core.MaxEnumGroup.LogDebug, "insert {DataStorageName} {RowCount} for {DataCount} in {Milliseconds}", loDataList.DataModel.DataStorageName, lnR, loDataList.Count, loWatch.Elapsed.TotalMilliseconds));
+                }
             }
 
             return lnR;
         }
 
         /// <summary>
-        /// Updates an existing data element.
+        /// Updates a list of elements
         /// </summary>
-        /// <param name="loDataList">The list of data objects to insert.</param>
-        /// <returns>The data that was updated.</returns>
+        /// <param name="loDataList">The list of elements</param>
+        /// <returns>Flag based status code indicating level of success.</returns>
         public override int Update(MaxDataList loDataList)
         {
+            int lnR = 0;
             System.Diagnostics.Stopwatch loWatch = System.Diagnostics.Stopwatch.StartNew();
-            MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableUpdateStart", MaxFactry.Core.MaxEnumGroup.LogDebug, "update {DataStorageName} for {DataCount}", loDataList.DataModel.DataStorageName, loDataList.Count));
-            int lnR = MaxAzureTableLibrary.Update(this.AccountName, this.AccountKey, loDataList);
-            loWatch.Stop();
-            if (loWatch.Elapsed.TotalMilliseconds > 100)
+            for (int lnD = 0; lnD < loDataList.Count && lnR == 0; lnD++)
             {
-                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableUpdateEnd", MaxFactry.Core.MaxEnumGroup.LogWarning, "update {DataStorageName} {RowCount} for {DataCount} in {Milliseconds}", loDataList.DataModel.DataStorageName, lnR, loDataList.Count, loWatch.Elapsed.TotalMilliseconds));
+                MaxData loData = loDataList[lnD];
+                foreach (string lsDataName in loData.DataModel.DataNameStreamList)
+                {
+                    int lnReturn = MaxStreamLibrary.StreamSave(loData, lsDataName);
+                    if ((lnReturn & 1) != 0)
+                    {
+                        lnR |= 2; //// Error saving stream
+                    }
+                }
             }
-            else
+
+            if (lnR == 0)
             {
-                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableUpdateEnd", MaxFactry.Core.MaxEnumGroup.LogDebug, "update {DataStorageName} {RowCount} for {DataCount} in {Milliseconds}", loDataList.DataModel.DataStorageName, lnR, loDataList.Count, loWatch.Elapsed.TotalMilliseconds));
+                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableUpdateStart", MaxFactry.Core.MaxEnumGroup.LogDebug, "update {DataStorageName} for {DataCount}", loDataList.DataModel.DataStorageName, loDataList.Count));
+                lnR = MaxAzureTableLibrary.Update(this.AccountName, this.AccountKey, loDataList);
+                loWatch.Stop();
+                if (loWatch.Elapsed.TotalMilliseconds > 100)
+                {
+                    MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableUpdateEnd", MaxFactry.Core.MaxEnumGroup.LogWarning, "update {DataStorageName} {RowCount} for {DataCount} in {Milliseconds}", loDataList.DataModel.DataStorageName, lnR, loDataList.Count, loWatch.Elapsed.TotalMilliseconds));
+                }
+                else
+                {
+                    MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableUpdateEnd", MaxFactry.Core.MaxEnumGroup.LogDebug, "update {DataStorageName} {RowCount} for {DataCount} in {Milliseconds}", loDataList.DataModel.DataStorageName, lnR, loDataList.Count, loWatch.Elapsed.TotalMilliseconds));
+                }
             }
 
             return lnR;
         }
 
         /// <summary>
-        /// Deletes an existing data element.
+        /// Deletes a list of elements
         /// </summary>
-        /// <param name="loDataList">The list of data objects to insert.</param>
-        /// <returns>true if deleted.</returns>
+        /// <param name="loDataList">The list of elements</param>
+        /// <returns>Flag based status code indicating level of success.</returns>
         public override int Delete(MaxDataList loDataList)
         {
-            System.Diagnostics.Stopwatch loWatch = System.Diagnostics.Stopwatch.StartNew();
-            MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableDeleteStart", MaxFactry.Core.MaxEnumGroup.LogDebug, "delete {DataStorageName} for {DataCount}", loDataList.DataModel.DataStorageName, loDataList.Count));
-            int lnR = MaxAzureTableLibrary.Delete(this.AccountName, this.AccountKey, loDataList);
-            loWatch.Stop();
-            if (loWatch.Elapsed.TotalMilliseconds > 100)
+            int lnR = 0;
+            for (int lnD = 0; lnD < loDataList.Count; lnD++)
             {
-                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableDeleteEnd", MaxFactry.Core.MaxEnumGroup.LogWarning, "delete {DataStorageName} {RowCount} for {DataCount} in {Milliseconds}", loDataList.DataModel.DataStorageName, lnR, loDataList.Count, loWatch.Elapsed.TotalMilliseconds));
+                MaxData loData = loDataList[lnD];
+                foreach (string lsDataName in loData.DataModel.DataNameStreamList)
+                {
+                    int lnReturn = MaxStreamLibrary.StreamDelete(loData, lsDataName);
+                    if ((lnReturn & 1) != 0)
+                    {
+                        lnR |= 2; //// Error deleting stream
+                    }
+                }
             }
-            else
+
+            if (lnR == 0)
             {
-                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableDeleteEnd", MaxFactry.Core.MaxEnumGroup.LogDebug, "delete {DataStorageName} {RowCount} for {DataCount} in {Milliseconds}", loDataList.DataModel.DataStorageName, lnR, loDataList.Count, loWatch.Elapsed.TotalMilliseconds));
+                System.Diagnostics.Stopwatch loWatch = System.Diagnostics.Stopwatch.StartNew();
+                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableDeleteStart", MaxFactry.Core.MaxEnumGroup.LogDebug, "delete {DataStorageName} for {DataCount}", loDataList.DataModel.DataStorageName, loDataList.Count));
+                lnR = MaxAzureTableLibrary.Delete(this.AccountName, this.AccountKey, loDataList);
+                loWatch.Stop();
+                if (loWatch.Elapsed.TotalMilliseconds > 100)
+                {
+                    MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableDeleteEnd", MaxFactry.Core.MaxEnumGroup.LogWarning, "delete {DataStorageName} {RowCount} for {DataCount} in {Milliseconds}", loDataList.DataModel.DataStorageName, lnR, loDataList.Count, loWatch.Elapsed.TotalMilliseconds));
+                }
+                else
+                {
+                    MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableDeleteEnd", MaxFactry.Core.MaxEnumGroup.LogDebug, "delete {DataStorageName} {RowCount} for {DataCount} in {Milliseconds}", loDataList.DataModel.DataStorageName, lnR, loDataList.Count, loWatch.Elapsed.TotalMilliseconds));
+                }
             }
 
             return lnR;
-        }
-
-        /// <summary>
-        /// Selects all data from the data storage name for the specified type.
-        /// </summary>
-        /// <param name="loData">Name of the data storage (table name).</param>
-        /// <param name="laDataNameList">list of fields to return from select</param>
-        /// <returns>List of data elements with a base data model.</returns>
-        public override MaxDataList SelectAll(MaxData loData, params string[] laDataNameList)
-        {
-            System.Diagnostics.Stopwatch loWatch = System.Diagnostics.Stopwatch.StartNew();
-            MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelectAllStart", MaxFactry.Core.MaxEnumGroup.LogDebug, "select all {DataStorageName}", loData.DataModel.DataStorageName));
-            MaxDataList loList = MaxAzureTableLibrary.SelectAll(this.AccountName, this.AccountKey, loData);
-            MaxFactry.Core.MaxLogLibrary.Log(MaxFactry.Core.MaxEnumGroup.LogInfo, "Select All [" + loData.DataModel.DataStorageName + "] in [" + loWatch.ElapsedMilliseconds.ToString() + "] milliseconds.", "MaxAzureTableDataContextProvider");
-            loWatch.Stop();
-            if (loWatch.Elapsed.TotalMilliseconds > 1000)
-            {
-                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelectAllEnd", MaxFactry.Core.MaxEnumGroup.LogWarning, "select all {DataStorageName} {RowCount} in {Milliseconds}", loData.DataModel.DataStorageName, loList.Count, loWatch.Elapsed.TotalMilliseconds));
-            }
-            else
-            {
-                MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableSelectAllEnd", MaxFactry.Core.MaxEnumGroup.LogDebug, "select all {DataStorageName} {RowCount} in {Milliseconds}", loData.DataModel.DataStorageName, loList.Count, loWatch.Elapsed.TotalMilliseconds));
-            }
-
-            return loList;
         }
     }
 }

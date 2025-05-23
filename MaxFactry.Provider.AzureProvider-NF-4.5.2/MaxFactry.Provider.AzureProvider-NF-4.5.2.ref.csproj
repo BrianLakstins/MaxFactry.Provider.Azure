@@ -55,12 +55,11 @@
   <ItemGroup>
     <Compile Include="DataLayer\DataModel\MaxAzureTableDataModel.cs" />
     <Compile Include="DataLayer\Library\MaxAzureBlobLibrary.cs" />
-    <Compile Include="DataLayer\Library\MaxDataStreamAzureBlobLibrary.cs" />
     <Compile Include="DataLayer\Library\MaxAzureManagementLibrary.cs" />
     <Compile Include="DataLayer\Library\MaxAzureTableLibrary.cs" />
-    <Compile Include="MaxFactry.Base\DataLayer\Library\Provider\MaxStreamLibraryAzureBlobProvider.cs" />
     <Compile Include="MaxFactry.Base\DataLayer\Library\Provider\MaxDataContextLibraryAzureSqlProvider.cs" />
     <Compile Include="MaxFactry.Base\DataLayer\Library\Provider\MaxDataContextLibraryAzureTableProvider.cs" />
+    <Compile Include="MaxFactry.Base\DataLayer\Library\Provider\MaxStreamLibraryAzureBlobProvider.cs" />
     <Compile Include="MaxFactry.Core\Library\Provider\MaxLogLibraryAzureApplicationInsightProvider.cs" />
     <Compile Include="MaxFactry.Module.Security\DataLayer\Repository\Provider\MaxSecurityRepositoryAzureTableProvider.cs" />
     <Compile Include="MaxStartup.cs" />
