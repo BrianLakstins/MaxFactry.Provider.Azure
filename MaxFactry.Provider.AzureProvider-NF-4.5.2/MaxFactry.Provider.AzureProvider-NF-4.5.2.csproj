@@ -59,7 +59,6 @@
     <Compile Include="MaxStartup.cs" />
     <Compile Include="DataLayer\DataModel\MaxAzureTableDataModel.cs" />
     <Compile Include="DataLayer\Library\MaxAzureBlobLibrary.cs" />
-    <Compile Include="DataLayer\Library\MaxDataStreamAzureBlobLibrary.cs" />
     <Compile Include="DataLayer\Library\MaxAzureManagementLibrary.cs" />
     <Compile Include="DataLayer\Library\MaxAzureTableLibrary.cs" />
     <Compile Include="MaxFactry.Core\Library\Provider\MaxLogLibraryAzureApplicationInsightProvider.cs" />
