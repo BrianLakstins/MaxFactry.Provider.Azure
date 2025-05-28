@@ -61,7 +61,7 @@
     <Compile Include="MaxFactry.Base\DataLayer\Library\Provider\MaxDataContextLibraryAzureTableProvider.cs" />
     <Compile Include="MaxFactry.Base\DataLayer\Library\Provider\MaxStreamLibraryAzureBlobProvider.cs" />
     <Compile Include="MaxFactry.Core\Library\Provider\MaxLogLibraryAzureApplicationInsightProvider.cs" />
-    <Compile Include="MaxFactry.Module.Security\DataLayer\Repository\Provider\MaxSecurityRepositoryAzureTableProvider.cs" />
+    <Compile Include="MaxFactry.General\DataLayer\Repository\Provider\MaxSecurityRepositoryAzureTableProvider.cs" />
     <Compile Include="MaxStartup.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -164,7 +164,9 @@
       <Version>9.3.3</Version>
     </PackageReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="NewFolder1\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
