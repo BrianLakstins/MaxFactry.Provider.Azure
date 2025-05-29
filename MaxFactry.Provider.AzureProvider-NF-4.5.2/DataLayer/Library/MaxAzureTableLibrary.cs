@@ -56,6 +56,7 @@
 // <change date="12/11/2019" author="Brian A. Lakstins" description="Tweaks to query processes.  Allow selecting  records without using Partition Key as part of key for query.">
 // <change date="3/31/2024" author="Brian A. Lakstins" description="Updated for changes to dependency classes.">
 // <change date="5/13/2025" author="Brian A. Lakstins" description="Updated for new Id based class.">
+// <change date="5/29/2025" author="Brian A. Lakstins" description="Update filtering for specifying PartitionKey and RowKey">
 // </changelog>
 #endregion Change Log
 
@@ -706,6 +707,10 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                 {
                     lsRowKey = loData.Get(((MaxIdGuidDataModel)loData.DataModel).Id).ToString().ToLowerInvariant();
                 }
+                else if (loData.DataModel is MaxBaseGuidKeyDataModel)
+                {
+                    lsRowKey = loData.Get(((MaxBaseGuidKeyDataModel)loData.DataModel).Id).ToString().ToLowerInvariant();
+                }
                 else if (loData.DataModel is MaxIdIntegerDataModel)
                 {
                     lsRowKey = loData.Get(((MaxIdIntegerDataModel)loData.DataModel).Id).ToString().ToLowerInvariant();
@@ -740,9 +745,9 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
         public static TableQuery GetTableQueryForSelect(MaxData loData, MaxDataQuery loDataQuery, params string[] laDataNameList)
         {
             string lsPartitionKey = loData.Get("_PartitionKey") as string;
+            MaxBaseDataModel loBaseDataModel = loData.DataModel as MaxBaseDataModel;
             if (string.IsNullOrEmpty(lsPartitionKey))
             {
-                MaxBaseDataModel loBaseDataModel = loData.DataModel as MaxBaseDataModel;
                 if (null != loBaseDataModel)
                 {
                     lsPartitionKey = MaxConvertLibrary.ConvertToString(typeof(object), loData.Get(loBaseDataModel.StorageKey));
@@ -792,7 +797,6 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                 if (loData.DataModel.IsStored(lsDataName))
                 {
                     bool lbIsPrimaryKey = loData.DataModel.GetAttributeSetting(lsDataName, "IsPrimaryKey");
-                    MaxBaseDataModel loBaseDataModel = loData.DataModel as MaxBaseDataModel;
 
                     //// TODO: Add filtering by StorageKey once all data has been updated to save storage key
                     //// 12/21/2016 - StorageKey is not saved in each row at this time.  Filtering is done based on PartitionKey.
@@ -841,16 +845,35 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                     else if (loStatement is MaxDataFilter)
                     {
                         MaxDataFilter loDataFilter = (MaxDataFilter)loStatement;
-                        lsDataQuery += GetFilterCondition(loDataFilter.Name, loDataFilter.Operator, loDataFilter.Value, loData.DataModel);
-                        if (loData.DataModel is MaxIdGuidDataModel && loDataFilter.Name == ((MaxIdGuidDataModel)loData.DataModel).Id)
+                        if (loDataFilter.Name.Equals(loBaseDataModel.StorageKey))
                         {
-                            string lsRowKeyFilterCondition = GetFilterCondition("RowKey", "=", loDataFilter.Value.ToString(), loData.DataModel);
-                            lsDataQuery = TableQuery.CombineFilters(lsDataQuery, TableOperators.And, lsRowKeyFilterCondition);
+                            if (lsPartitionKey != loDataFilter.Value.ToString() && lsPartitionKey.Length <= loDataFilter.Value.ToString().Length)
+                            {
+                                string lsPartitionKeyFilter = TableQuery.GenerateFilterCondition(
+                                    "PartitionKey",
+                                    QueryComparisons.Equal,
+                                    loDataFilter.Value.ToString());
+                                lsPartitionKey = string.Empty;
+                                lsDataQuery += lsPartitionKeyFilter;
+                            }
+                            else
+                            {
+                                lsDataQuery += GetFilterCondition(loDataFilter.Name, loDataFilter.Operator, loDataFilter.Value, loData.DataModel);
+                            }
                         }
-                        else if (loData.DataModel is MaxBaseGuidKeyDataModel && loDataFilter.Name == ((MaxBaseGuidKeyDataModel)loData.DataModel).Id)
+                        else
                         {
-                            string lsRowKeyFilterCondition = GetFilterCondition("RowKey", "=", loDataFilter.Value.ToString(), loData.DataModel);
-                            lsDataQuery = TableQuery.CombineFilters(lsDataQuery, TableOperators.And, lsRowKeyFilterCondition);
+                            lsDataQuery += GetFilterCondition(loDataFilter.Name, loDataFilter.Operator, loDataFilter.Value, loData.DataModel);
+                            if (loData.DataModel is MaxIdGuidDataModel && loDataFilter.Name == ((MaxIdGuidDataModel)loData.DataModel).Id)
+                            {
+                                string lsRowKeyFilterCondition = GetFilterCondition("RowKey", "=", loDataFilter.Value.ToString(), loData.DataModel);
+                                lsDataQuery = TableQuery.CombineFilters(lsDataQuery, TableOperators.And, lsRowKeyFilterCondition);
+                            }
+                            else if (loData.DataModel is MaxBaseGuidKeyDataModel && loDataFilter.Name == ((MaxBaseGuidKeyDataModel)loData.DataModel).Id)
+                            {
+                                string lsRowKeyFilterCondition = GetFilterCondition("RowKey", "=", loDataFilter.Value.ToString(), loData.DataModel);
+                                lsDataQuery = TableQuery.CombineFilters(lsDataQuery, TableOperators.And, lsRowKeyFilterCondition);
+                            }
                         }
                     }
                 }
@@ -865,7 +888,7 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                 }
             }
 
-            if (lsPartitionKey != "*")
+            if (lsPartitionKey != "*" && !string.IsNullOrEmpty(lsPartitionKey))
             {
                 string lsPartitionKeyFilter = TableQuery.GenerateFilterCondition(
                     "PartitionKey",
@@ -884,12 +907,21 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
 
             if (loData.DataModel is MaxIdGuidDataModel ||
                 loData.DataModel is MaxIdIntegerDataModel ||
-                loData.DataModel is MaxIdStringDataModel)
+                loData.DataModel is MaxIdStringDataModel ||
+                loData.DataModel is MaxBaseGuidKeyDataModel)
             {
                 string lsRowKey = string.Empty;
                 if (loData.DataModel is MaxIdGuidDataModel)
                 {
                     Guid loId = MaxConvertLibrary.ConvertToGuid(loData.DataModel.GetType(), loData.Get(((MaxIdGuidDataModel)loData.DataModel).Id));
+                    if (!Guid.Empty.Equals(loId))
+                    {
+                        lsRowKey = loId.ToString().ToLowerInvariant();
+                    }
+                }
+                else if (loData.DataModel is MaxBaseGuidKeyDataModel)
+                {
+                    Guid loId = MaxConvertLibrary.ConvertToGuid(loData.DataModel.GetType(), loData.Get(((MaxBaseGuidKeyDataModel)loData.DataModel).Id));
                     if (!Guid.Empty.Equals(loId))
                     {
                         lsRowKey = loId.ToString().ToLowerInvariant();
