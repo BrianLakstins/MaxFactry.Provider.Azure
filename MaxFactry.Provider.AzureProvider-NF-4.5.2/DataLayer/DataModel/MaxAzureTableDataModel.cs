@@ -64,10 +64,8 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
         /// </summary>
         public MaxAzureTableDataModel()
         {
-            this.AddType(this.PartitionKey, typeof(string));
-            this.AddAttribute(this.PartitionKey, "IsPrimaryKey", "true");
-            this.AddType(this.RowKey, typeof(string));
-            this.AddAttribute(this.RowKey, "IsPrimaryKey", "true");
+            this.AddStorageKey(this.PartitionKey, typeof(string));
+            this.AddDataKey(this.RowKey, typeof(string));
             this.AddType(this.Timestamp, typeof(DateTime));
         }
     }
