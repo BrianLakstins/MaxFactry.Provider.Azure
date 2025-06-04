@@ -57,17 +57,20 @@
 // <change date="3/31/2024" author="Brian A. Lakstins" description="Updated for changes to dependency classes.">
 // <change date="5/13/2025" author="Brian A. Lakstins" description="Updated for new Id based class.">
 // <change date="5/29/2025" author="Brian A. Lakstins" description="Update filtering for specifying PartitionKey and RowKey">
+// <change date="6/4/2025" author="Brian A. Lakstins" description="Update PartitionKey and RowKey to use StorageKey and DataKey">
 // </changelog>
 #endregion Change Log
 
 namespace MaxFactry.Provider.AzureProvider.DataLayer
 {
     using System;
+    using System.Collections.Generic;
     using MaxFactry.Core;
     using MaxFactry.Base.DataLayer;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Auth;
     using Microsoft.WindowsAzure.Storage.Table;
+    using MaxFactry.Base.DataLayer.Library;
 
     /// <summary>
     /// Provides session services using MaxFactryLibrary.
@@ -217,12 +220,6 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                 loDataOut.Set("_Timestamp", loDataEntity.Timestamp);
                 loDataOut.Set("_RowKey", loDataEntity.RowKey);
                 loDataOut.Set("_PartitionKey", loDataEntity.PartitionKey);
-                MaxBaseDataModel loBaseDataModel = loData.DataModel as MaxBaseDataModel;
-                if (null != loBaseDataModel && loBaseDataModel.IsStored(loBaseDataModel.StorageKey))
-                {
-                    loDataOut.Set(loBaseDataModel.StorageKey, loDataEntity.PartitionKey);
-                }
-
                 loDataOut.ClearChanged();
                 loDataList.Add(loDataOut);
             }
@@ -388,18 +385,19 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                 }
                 catch (Exception loE)
                 {
-                    MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableInsert", MaxFactry.Core.MaxEnumGroup.LogError, "insert {TableName} failed.", loE, loTable.Name));
+                    lnR |= 1; // Set exception flag
+                    MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableInsert", MaxFactry.Core.MaxEnumGroup.LogError, "Insert into {TableName} failed for data {Data}", loE, loTable.Name, loData));
                 }
 
                 if (null != loResult)
                 {
                     if (200 <= loResult.HttpStatusCode && loResult.HttpStatusCode < 300)
                     {
-                        lnR++;
                         loDataList[lnD].ClearChanged();
                     }
                     else
                     {
+                        lnR |= 2; // Set error flag
                         MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableInsert", MaxFactry.Core.MaxEnumGroup.LogError, "insert {TableName} failed with code {StatusCode}.", loTable.Name, loResult.HttpStatusCode));
                     }
                 }
@@ -578,7 +576,11 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                         if (!_oTableList.Contains(lsTableKey))
                         {
                             MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableGetClientCreateTableStart", MaxFactry.Core.MaxEnumGroup.LogDebug, "Creating table {TableName}", lsTable));
-                            loTableClient.GetTableReference(lsTable).CreateIfNotExists();
+                            if (loTableClient.GetTableReference(lsTable).CreateIfNotExists())
+                            {
+                                MaxLogLibrary.Log(new MaxLogEntryStructure(typeof(MaxAzureTableLibrary), "GetTableClient", MaxFactry.Core.MaxEnumGroup.LogInfo, "Created table {TableName}", lsTable));
+                            }
+
                             MaxLogLibrary.Log(new MaxLogEntryStructure("AzureTableGetClientCreateTableEnd", MaxFactry.Core.MaxEnumGroup.LogDebug, "Created table {TableName}", lsTable));
                             _oTableList.Add(lsTableKey, true);
                         }
@@ -598,43 +600,34 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
         public static DynamicTableEntity GetDynamicTableEntityForSingleMatch(MaxData loData)
         {
             DynamicTableEntity loDynamicTableEntity = new DynamicTableEntity();
-            //// Use the partitionkey that came from the query
+            //// Use the partitionkey that came from the data if there is one
             string lsPartitionKey = loData.Get("_PartitionKey") as string;
             if (string.IsNullOrEmpty(lsPartitionKey))
             {
-                MaxBaseDataModel loBaseDataModel = loData.DataModel as MaxBaseDataModel;
-                if (null != loBaseDataModel)
-                {
-                    lsPartitionKey = MaxConvertLibrary.ConvertToString(typeof(object), loData.Get(loBaseDataModel.StorageKey));
-                }
+                //// Use the fields that are specified as storage keys to create the partition key.
+                lsPartitionKey = loData.DataModel.GetStorageKey(loData);
 
-                if (string.IsNullOrEmpty(lsPartitionKey))
+                if (string.IsNullOrEmpty(lsPartitionKey) && loData.DataModel.HasStorageKey)
                 {
-                    lsPartitionKey = DefaultPartitionKey;
-                }
-
-                /*
-                string lsPrimaryKeySuffix = loData.DataModel.GetPrimaryKeySuffix(loData);
-                if (!string.IsNullOrEmpty(lsPrimaryKeySuffix) && !string.IsNullOrEmpty(lsPartitionKey))
-                {
-                    if (lsPartitionKey.EndsWith(lsPrimaryKeySuffix))
+                    //// Use the dynamic storage key from the application configuration if it is not set.
+                    lsPartitionKey = MaxDataLibrary.GetStorageKey(null);
+                    if (string.IsNullOrEmpty(lsPartitionKey))
                     {
-                        if (null != loBaseDataModel)
-                        {
-                            //// The suffix has already been added, so update the storagekey property to remove it.
-                            loData.Set(loBaseDataModel.StorageKey, lsPartitionKey.Substring(0, lsPartitionKey.Length - lsPrimaryKeySuffix.Length));
-                        }
-                    }
-                    else if (lsPartitionKey.Length == DefaultPartitionKey.Length)
-                    {
-                        lsPartitionKey += lsPrimaryKeySuffix;
+                        //// If the storage key is still not set, use the default partition key.
+                        lsPartitionKey = DefaultPartitionKey;
                     }
                 }
-                */
             }
 
-            //// The partition key may not be the same as the StorageKey.
-            //// It may have more detail so queries can use it as an Index.
+            if (string.IsNullOrEmpty(lsPartitionKey))
+            {
+                throw new MaxException("Value of PartitionKey is blank");
+            }
+            else if (lsPartitionKey.Contains(loData.DataModel.KeySeparator))
+            {
+                lsPartitionKey = MaxEncryptionLibrary.GetHash(typeof(object), "MD5", lsPartitionKey);
+            }
+
             loDynamicTableEntity.PartitionKey = lsPartitionKey;
             foreach (string lsDataName in loData.DataModel.DataNameList)
             {
@@ -699,36 +692,21 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                 }
             }
 
-            //// Use the rowkey that came from the query
+            //// Use the rowkey that came from the data if there is one
             string lsRowKey = loData.Get("_RowKey") as string;
             if (String.IsNullOrEmpty(lsRowKey))
             {
-                if (loData.DataModel is MaxIdGuidDataModel)
-                {
-                    lsRowKey = loData.Get(((MaxIdGuidDataModel)loData.DataModel).Id).ToString().ToLowerInvariant();
-                }
-                else if (loData.DataModel is MaxBaseGuidKeyDataModel)
-                {
-                    lsRowKey = loData.Get(((MaxBaseGuidKeyDataModel)loData.DataModel).Id).ToString().ToLowerInvariant();
-                }
-                else if (loData.DataModel is MaxIdIntegerDataModel)
-                {
-                    lsRowKey = loData.Get(((MaxIdIntegerDataModel)loData.DataModel).Id).ToString().ToLowerInvariant();
-                }
-                else if (loData.DataModel is MaxIdStringDataModel)
-                {
-                    lsRowKey = loData.Get(((MaxIdStringDataModel)loData.DataModel).Id).ToString().ToLowerInvariant();
-                }
-                else if (loData.DataModel is MaxBaseRelationDataModel)
-                {
-                    lsRowKey = loData.Get(((MaxBaseRelationDataModel)loData.DataModel).ParentId).ToString().ToLowerInvariant() +
-                        loData.Get(((MaxBaseRelationDataModel)loData.DataModel).ChildId).ToString().ToLowerInvariant();
-                    object loRelationType = loData.Get(((MaxBaseRelationDataModel)loData.DataModel).RelationType);
-                    if (null != loRelationType)
-                    {
-                        lsRowKey += loRelationType.ToString().ToLowerInvariant();
-                    }
-                }
+                lsRowKey = loData.DataModel.GetDataKey(loData);
+            }
+
+            if (string.IsNullOrEmpty(lsRowKey))
+            {
+                throw new MaxException("Value of RowKey is blank");
+            }
+
+            if (lsRowKey.Contains(loData.DataModel.KeySeparator))
+            {
+                lsRowKey = MaxEncryptionLibrary.GetHash(typeof(object), "MD5", lsRowKey);
             }
 
             loDynamicTableEntity.RowKey = lsRowKey;
@@ -744,88 +722,70 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
         /// <returns>TableQuery to use with Azure Tables.</returns>
         public static TableQuery GetTableQueryForSelect(MaxData loData, MaxDataQuery loDataQuery, params string[] laDataNameList)
         {
-            string lsPartitionKey = loData.Get("_PartitionKey") as string;
             MaxBaseDataModel loBaseDataModel = loData.DataModel as MaxBaseDataModel;
+            object[] laDataQuery = loDataQuery.GetQuery();
+            List<string> loPartionKeyDataNameList = new List<string>();
+            string lsPartitionKey = loData.Get("_PartitionKey") as string;
             if (string.IsNullOrEmpty(lsPartitionKey))
             {
-                if (null != loBaseDataModel)
+                lsPartitionKey = loData.DataModel.GetStorageKey(loData);
+                if (string.IsNullOrEmpty(lsPartitionKey) && loData.DataModel.HasStorageKey)
                 {
-                    lsPartitionKey = MaxConvertLibrary.ConvertToString(typeof(object), loData.Get(loBaseDataModel.StorageKey));
-                }
-                
-                if (lsPartitionKey != "*")
-                {
+                    //// Use the dynamic storage key from the application configuration if it is not set.
+                    lsPartitionKey = MaxDataLibrary.GetStorageKey(null);                    
                     if (string.IsNullOrEmpty(lsPartitionKey))
                     {
+                        //// If the storage key is still not set, use the default partition key.
                         lsPartitionKey = DefaultPartitionKey;
                     }
-
-                    /*
-                    string lsPrimaryKeySuffix = loData.DataModel.GetPrimaryKeySuffix(loData);
-                    if (!string.IsNullOrEmpty(lsPrimaryKeySuffix) && !string.IsNullOrEmpty(lsPartitionKey))
-                    {
-                        if (lsPartitionKey.EndsWith(lsPrimaryKeySuffix))
-                        {
-                            if (null != loBaseDataModel)
-                            {
-                                //// The suffix has already been added, so update the storagekey property to remove it.
-                                loData.Set(loBaseDataModel.StorageKey, lsPartitionKey.Substring(0, lsPartitionKey.Length - lsPrimaryKeySuffix.Length));
-                            }
-                        }
-                        else
-                        {
-                            lsPartitionKey += lsPrimaryKeySuffix;
-                        }
-                    }
-                    */
-                }
+                }                
             }
 
-            TableQuery loQuery = new TableQuery();
-            if (null != laDataNameList)
+            string lsQueryFilter = string.Empty;
+            if (lsPartitionKey != "*" && !string.IsNullOrEmpty(lsPartitionKey))
             {
-                loQuery.Select(laDataNameList);
-            }
-            else
-            {
-                loQuery.Select(loData.DataModel.DataNameList);
-            }
-
-            string lsAzureFilter = string.Empty;
-            foreach (string lsDataName in loData.DataModel.DataNameList)
-            {
-                if (loData.DataModel.IsStored(lsDataName))
+                if (lsPartitionKey.Contains(loData.DataModel.KeySeparator))
                 {
-                    bool lbIsPrimaryKey = loData.DataModel.GetAttributeSetting(lsDataName, "IsPrimaryKey");
+                    lsPartitionKey = MaxEncryptionLibrary.GetHash(typeof(object), "MD5", lsPartitionKey);
+                }
 
-                    //// TODO: Add filtering by StorageKey once all data has been updated to save storage key
-                    //// 12/21/2016 - StorageKey is not saved in each row at this time.  Filtering is done based on PartitionKey.
-                    if (lbIsPrimaryKey && (null != loBaseDataModel && !lsDataName.Equals(loBaseDataModel.StorageKey)))
-                    {
-                        object loKeyValue = loData.Get(lsDataName);
-                        if (null != loKeyValue)
-                        {
-                            string lsFilterCondition = GetFilterCondition(lsDataName, "=", loKeyValue, loData.DataModel);
-                            if (lsAzureFilter.Length > 0)
-                            {
-                                lsAzureFilter = TableQuery.CombineFilters(lsAzureFilter, TableOperators.And, lsFilterCondition);
-                            }
-                            else
-                            {
-                                lsAzureFilter = lsFilterCondition;
-                            }
+                string lsPartitionKeyFilter = TableQuery.GenerateFilterCondition(
+                    "PartitionKey",
+                    QueryComparisons.Equal,
+                    lsPartitionKey);
 
-                            if (loData.DataModel is MaxIdGuidDataModel && lsDataName == ((MaxIdGuidDataModel)loData.DataModel).Id)
-                            {
-                                lsFilterCondition = GetFilterCondition("RowKey", "=", loKeyValue.ToString(), loData.DataModel);
-                                lsAzureFilter = TableQuery.CombineFilters(lsAzureFilter, TableOperators.And, lsFilterCondition);
-                            }
-                        }
-                    }
+                lsQueryFilter = lsPartitionKeyFilter;
+            }
+
+            List<string> loRowKeyDataNameList = new List<string>();
+            string lsRowKey = loData.Get("_RowKey") as string;
+            if (string.IsNullOrEmpty(lsRowKey))
+            {
+                lsRowKey = loData.DataModel.GetDataKey(loData);
+            }
+
+            if (!string.IsNullOrEmpty(lsRowKey))
+            {
+                if (lsRowKey.Contains(loData.DataModel.KeySeparator))
+                {
+                    lsRowKey = MaxEncryptionLibrary.GetHash(typeof(object), "MD5", lsRowKey);
+                }
+
+                string lsRowKeyFilter = TableQuery.GenerateFilterCondition(
+                    "RowKey",
+                    QueryComparisons.Equal,
+                    lsRowKey);
+
+                if (lsQueryFilter.Length > 0)
+                {
+                    lsQueryFilter = TableQuery.CombineFilters(lsQueryFilter, TableOperators.And, lsRowKeyFilter);
+                }
+                else
+                {
+                    lsQueryFilter = lsRowKeyFilter;
                 }
             }
 
-            object[] laDataQuery = loDataQuery.GetQuery();
             if (laDataQuery.Length > 0)
             {
                 string lsDataQuery = string.Empty;
@@ -845,120 +805,28 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                     else if (loStatement is MaxDataFilter)
                     {
                         MaxDataFilter loDataFilter = (MaxDataFilter)loStatement;
-                        if (loDataFilter.Name.Equals(loBaseDataModel.StorageKey))
-                        {
-                            if (lsPartitionKey != loDataFilter.Value.ToString() && lsPartitionKey.Length <= loDataFilter.Value.ToString().Length)
-                            {
-                                string lsPartitionKeyFilter = TableQuery.GenerateFilterCondition(
-                                    "PartitionKey",
-                                    QueryComparisons.Equal,
-                                    loDataFilter.Value.ToString());
-                                lsPartitionKey = string.Empty;
-                                lsDataQuery += lsPartitionKeyFilter;
-                            }
-                            else
-                            {
-                                lsDataQuery += GetFilterCondition(loDataFilter.Name, loDataFilter.Operator, loDataFilter.Value, loData.DataModel);
-                            }
-                        }
-                        else
-                        {
-                            lsDataQuery += GetFilterCondition(loDataFilter.Name, loDataFilter.Operator, loDataFilter.Value, loData.DataModel);
-                            if (loData.DataModel is MaxIdGuidDataModel && loDataFilter.Name == ((MaxIdGuidDataModel)loData.DataModel).Id)
-                            {
-                                string lsRowKeyFilterCondition = GetFilterCondition("RowKey", "=", loDataFilter.Value.ToString(), loData.DataModel);
-                                lsDataQuery = TableQuery.CombineFilters(lsDataQuery, TableOperators.And, lsRowKeyFilterCondition);
-                            }
-                            else if (loData.DataModel is MaxBaseGuidKeyDataModel && loDataFilter.Name == ((MaxBaseGuidKeyDataModel)loData.DataModel).Id)
-                            {
-                                string lsRowKeyFilterCondition = GetFilterCondition("RowKey", "=", loDataFilter.Value.ToString(), loData.DataModel);
-                                lsDataQuery = TableQuery.CombineFilters(lsDataQuery, TableOperators.And, lsRowKeyFilterCondition);
-                            }
-                        }
+                        lsDataQuery += GetFilterCondition(loDataFilter.Name, loDataFilter.Operator, loDataFilter.Value, loData.DataModel);
                     }
                 }
 
-                if (!string.IsNullOrEmpty(lsAzureFilter))
+                if (lsQueryFilter.Length > 0)
                 {
-                    lsAzureFilter = TableQuery.CombineFilters(lsAzureFilter, TableOperators.And, lsDataQuery);
+                    lsQueryFilter = TableQuery.CombineFilters(lsQueryFilter, TableOperators.And, lsDataQuery);
                 }
                 else
                 {
-                    lsAzureFilter = lsDataQuery;
+                    lsQueryFilter = lsDataQuery;
                 }
             }
 
-            if (lsPartitionKey != "*" && !string.IsNullOrEmpty(lsPartitionKey))
+            TableQuery loQuery = new TableQuery();
+            if (null != laDataNameList)
             {
-                string lsPartitionKeyFilter = TableQuery.GenerateFilterCondition(
-                    "PartitionKey",
-                    QueryComparisons.Equal,
-                    lsPartitionKey);
-
-                if (lsAzureFilter.Length > 0)
-                {
-                    lsAzureFilter = TableQuery.CombineFilters(lsAzureFilter, TableOperators.And, lsPartitionKeyFilter);
-                }
-                else
-                {
-                    lsAzureFilter = lsPartitionKeyFilter;
-                }
+                //// Limit the fields that are returned
+                loQuery.Select(laDataNameList);
             }
 
-            if (loData.DataModel is MaxIdGuidDataModel ||
-                loData.DataModel is MaxIdIntegerDataModel ||
-                loData.DataModel is MaxIdStringDataModel ||
-                loData.DataModel is MaxBaseGuidKeyDataModel)
-            {
-                string lsRowKey = string.Empty;
-                if (loData.DataModel is MaxIdGuidDataModel)
-                {
-                    Guid loId = MaxConvertLibrary.ConvertToGuid(loData.DataModel.GetType(), loData.Get(((MaxIdGuidDataModel)loData.DataModel).Id));
-                    if (!Guid.Empty.Equals(loId))
-                    {
-                        lsRowKey = loId.ToString().ToLowerInvariant();
-                    }
-                }
-                else if (loData.DataModel is MaxBaseGuidKeyDataModel)
-                {
-                    Guid loId = MaxConvertLibrary.ConvertToGuid(loData.DataModel.GetType(), loData.Get(((MaxBaseGuidKeyDataModel)loData.DataModel).Id));
-                    if (!Guid.Empty.Equals(loId))
-                    {
-                        lsRowKey = loId.ToString().ToLowerInvariant();
-                    }
-                }
-                else if (loData.DataModel is MaxIdIntegerDataModel)
-                {
-                    long lnId = MaxConvertLibrary.ConvertToLong(loData.DataModel.GetType(), loData.Get(((MaxIdIntegerDataModel)loData.DataModel).Id));
-                    if (!long.MinValue.Equals(lnId))
-                    {
-                        lsRowKey = lnId.ToString().ToLowerInvariant();
-                    }
-                }
-                else if (loData.DataModel is MaxIdStringDataModel)
-                {
-                    lsRowKey = MaxConvertLibrary.ConvertToString(loData.DataModel.GetType(), loData.Get(((MaxIdStringDataModel)loData.DataModel).Id)).ToLowerInvariant();
-                }
-
-                if (!string.Empty.Equals(lsRowKey))
-                {
-                    string lsRowKeyFilter = TableQuery.GenerateFilterCondition(
-                        "RowKey",
-                        QueryComparisons.Equal,
-                        lsRowKey);
-
-                    if (lsAzureFilter.Length > 0)
-                    {
-                        lsAzureFilter = TableQuery.CombineFilters(lsAzureFilter, TableOperators.And, lsRowKeyFilter);
-                    }
-                    else
-                    {
-                        lsAzureFilter = lsRowKeyFilter;
-                    }
-                }
-            }
-
-            loQuery.FilterString = lsAzureFilter;
+            loQuery.FilterString = lsQueryFilter;
             return loQuery;
         }
 

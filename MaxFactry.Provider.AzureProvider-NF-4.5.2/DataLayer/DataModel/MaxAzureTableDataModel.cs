@@ -31,6 +31,7 @@
 // <change date="8/21/2014" author="Brian A. Lakstins" description="Moved from AzureTable to AzureStorage.">
 // <change date="11/30/2018" author="Brian A. Lakstins" description="Updated for changes to base.">
 // <change date="3/31/2024" author="Brian A. Lakstins" description="Updated base class.  Updated for changes to base class.">
+// <change date="6/4/2025" author="Brian A. Lakstins" description="Use base methods for DataKey and StorageKey">
 // </changelog>
 #endregion Change Log
 
@@ -64,10 +65,8 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
         /// </summary>
         public MaxAzureTableDataModel()
         {
-            this.AddType(this.PartitionKey, typeof(string));
-            this.AddAttribute(this.PartitionKey, "IsPrimaryKey", "true");
-            this.AddType(this.RowKey, typeof(string));
-            this.AddAttribute(this.RowKey, "IsPrimaryKey", "true");
+            this.AddStorageKey(this.PartitionKey, typeof(string));
+            this.AddDataKey(this.RowKey, typeof(string));
             this.AddType(this.Timestamp, typeof(DateTime));
         }
     }

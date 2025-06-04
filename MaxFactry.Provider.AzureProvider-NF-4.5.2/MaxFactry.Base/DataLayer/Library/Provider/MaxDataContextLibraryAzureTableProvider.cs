@@ -30,6 +30,7 @@
 // <change date="5/29/2021" author="Brian A. Lakstins" description="Initial Creation based on MaxDataContextAzureTableProvider">
 // <change date="3/31/2024" author="Brian A. Lakstins" description="Updated namespace and class name to match MaxFactry.Base naming conventions.">
 // <change date="5/23/2025" author="Brian A. Lakstins" description="Remove stream handling methods and integrate stream handling using StreamLibrary">
+// <change date="6/4/2025" author="Brian A. Lakstins" description="Updates for handling StorageKey and DataKey designations">
 // </changelog>
 #endregion Change Log
 
@@ -166,13 +167,19 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
                 }
 
                 //// Determine the storage key to match to the first part of the Partition Key
-                string lsStorageKey = string.Empty;
+                string lsStorageKey = loData.DataModel.GetStorageKey(loData);
                 if (loBaseDataModel != null)
                 {
                     lsStorageKey = MaxConvertLibrary.ConvertToString(typeof(object), loData.Get(loBaseDataModel.StorageKey));
                     if (string.IsNullOrEmpty(lsStorageKey))
                     {
-                        lsStorageKey = MaxAzureTableLibrary.DefaultPartitionKey;
+                        //// Use the dynamic storage key from the application configuration if it is not set.
+                        lsStorageKey = MaxDataLibrary.GetStorageKey(null);
+                        if (string.IsNullOrEmpty(lsStorageKey))
+                        {
+                            //// If the storage key is still not set, use the default partition key.
+                            lsStorageKey = MaxAzureTableLibrary.DefaultPartitionKey;
+                        }
                     }
                 }
 
