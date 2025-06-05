@@ -68,7 +68,6 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="ApplicationInsights.config" />
-    <None Include="MaxFactry.pfx" />
     <None Include="MaxFactry.snk" />
     <Content Include="ReadMe.md" />
   </ItemGroup>
