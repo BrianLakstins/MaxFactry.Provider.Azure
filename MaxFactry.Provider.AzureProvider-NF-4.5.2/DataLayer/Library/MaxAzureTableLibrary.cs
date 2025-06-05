@@ -57,7 +57,7 @@
 // <change date="3/31/2024" author="Brian A. Lakstins" description="Updated for changes to dependency classes.">
 // <change date="5/13/2025" author="Brian A. Lakstins" description="Updated for new Id based class.">
 // <change date="5/29/2025" author="Brian A. Lakstins" description="Update filtering for specifying PartitionKey and RowKey">
-// <change date="6/4/2025" author="Brian A. Lakstins" description="Update PartitionKey and RowKey to use StorageKey and DataKey">
+// <change date="6/4/2025" author="Brian A. Lakstins" description="Update PartitionKey and RowKey to use StorageKey and DataKey.  Fix return value counting records.">
 // </changelog>
 #endregion Change Log
 
@@ -452,7 +452,6 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                 {
                     if (200 <= loResult.HttpStatusCode && loResult.HttpStatusCode < 300)
                     {
-                        lnR++;
                         loDataList[lnD].ClearChanged();
                     }
                     else
