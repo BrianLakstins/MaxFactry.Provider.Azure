@@ -58,6 +58,7 @@
 // <change date="5/13/2025" author="Brian A. Lakstins" description="Updated for new Id based class.">
 // <change date="5/29/2025" author="Brian A. Lakstins" description="Update filtering for specifying PartitionKey and RowKey">
 // <change date="6/4/2025" author="Brian A. Lakstins" description="Update PartitionKey and RowKey to use StorageKey and DataKey.  Fix return value counting records.">
+// <change date="6/12/2025" author="Brian A. Lakstins" description="Update for Application Key">
 // </changelog>
 #endregion Change Log
 
@@ -604,17 +605,11 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
             if (string.IsNullOrEmpty(lsPartitionKey))
             {
                 //// Use the fields that are specified as storage keys to create the partition key.
-                lsPartitionKey = loData.DataModel.GetStorageKey(loData);
-
+                lsPartitionKey = loData.GetStorageKey();
                 if (string.IsNullOrEmpty(lsPartitionKey) && loData.DataModel.HasStorageKey)
                 {
-                    //// Use the dynamic storage key from the application configuration if it is not set.
-                    lsPartitionKey = MaxDataLibrary.GetStorageKey(null);
-                    if (string.IsNullOrEmpty(lsPartitionKey))
-                    {
-                        //// If the storage key is still not set, use the default partition key.
-                        lsPartitionKey = DefaultPartitionKey;
-                    }
+                    //// If the storage key is still not set, use the default partition key.
+                    lsPartitionKey = DefaultPartitionKey;
                 }
             }
 
@@ -727,16 +722,11 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
             string lsPartitionKey = loData.Get("_PartitionKey") as string;
             if (string.IsNullOrEmpty(lsPartitionKey))
             {
-                lsPartitionKey = loData.DataModel.GetStorageKey(loData);
+                lsPartitionKey = loData.GetStorageKey();
                 if (string.IsNullOrEmpty(lsPartitionKey) && loData.DataModel.HasStorageKey)
                 {
-                    //// Use the dynamic storage key from the application configuration if it is not set.
-                    lsPartitionKey = MaxDataLibrary.GetStorageKey(null);                    
-                    if (string.IsNullOrEmpty(lsPartitionKey))
-                    {
-                        //// If the storage key is still not set, use the default partition key.
-                        lsPartitionKey = DefaultPartitionKey;
-                    }
+                    //// If the storage key is still not set, use the default partition key.
+                    lsPartitionKey = DefaultPartitionKey;
                 }                
             }
 
