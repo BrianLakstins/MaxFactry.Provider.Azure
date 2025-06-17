@@ -2,7 +2,7 @@
 <package  xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>    
     <id>MaxFactry.Provider.Azure</id>
-    <version>1.0.24.53</version>
+    <version>1.0.24.55</version>
     <title>MaxFactry Provider Azure</title>
     <authors>Brian Lakstins</authors>
     <owners>brianlakstins</owners>
