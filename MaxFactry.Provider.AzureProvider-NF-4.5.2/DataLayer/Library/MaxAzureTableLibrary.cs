@@ -59,6 +59,7 @@
 // <change date="5/29/2025" author="Brian A. Lakstins" description="Update filtering for specifying PartitionKey and RowKey">
 // <change date="6/4/2025" author="Brian A. Lakstins" description="Update PartitionKey and RowKey to use StorageKey and DataKey.  Fix return value counting records.">
 // <change date="6/12/2025" author="Brian A. Lakstins" description="Update for Application Key">
+// <change date="6/17/2025" author="Brian A. Lakstins" description="Use DefaultPartitionKey when DataModel does not have a storage key">
 // </changelog>
 #endregion Change Log
 
@@ -606,7 +607,7 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
             {
                 //// Use the fields that are specified as storage keys to create the partition key.
                 lsPartitionKey = loData.GetStorageKey();
-                if (string.IsNullOrEmpty(lsPartitionKey) && loData.DataModel.HasStorageKey)
+                if (string.IsNullOrEmpty(lsPartitionKey) || !loData.DataModel.HasStorageKey)
                 {
                     //// If the storage key is still not set, use the default partition key.
                     lsPartitionKey = DefaultPartitionKey;
@@ -723,7 +724,7 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
             if (string.IsNullOrEmpty(lsPartitionKey))
             {
                 lsPartitionKey = loData.GetStorageKey();
-                if (string.IsNullOrEmpty(lsPartitionKey) && loData.DataModel.HasStorageKey)
+                if (string.IsNullOrEmpty(lsPartitionKey) || !loData.DataModel.HasStorageKey)
                 {
                     //// If the storage key is still not set, use the default partition key.
                     lsPartitionKey = DefaultPartitionKey;
