@@ -30,6 +30,7 @@
 // <change date="9/20/2023" author="Brian A. Lakstins" description="Initial creation">
 // <change date="3/31/2024" author="Brian A. Lakstins" description="Updated namespace and class name to match MaxFactry.Base naming conventions.">
 // <change date="5/23/2025" author="Brian A. Lakstins" description="Update to handle one field of one element at a time and send flag based return codes.  Integrate MaxDataStreamAzureBlobLibrary code instead of calling remotely.">
+// <change date="6/21/2025" author="Brian A. Lakstins" description="Update to handle multiple stream paths.">
 // </changelog>
 #endregion
 
@@ -40,7 +41,6 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
     using MaxFactry.Base.DataLayer;
     using MaxFactry.Core;
     using MaxFactry.Provider.AzureProvider.DataLayer;
-    using Microsoft.Azure.KeyVault.Core;
 
     /// <summary>
     /// Stream Library provider used to work with data on Azure and streams stored on Azure Blob
@@ -182,6 +182,70 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
             }
         }
 
+        protected override string GetStreamPath(string[] laStreamPath)
+        {
+            string lsR = laStreamPath[0];
+            for (int lnP = 1; lnP < laStreamPath.Length; lnP++)
+            {
+                lsR += "/" + laStreamPath[lnP];
+            }
+
+            return lsR;
+        }
+
+        /// <summary>
+        /// Make sure the blob exists and update the path if needed
+        /// </summary>
+        /// <param name="loData"></param>
+        /// <param name="lsDataName"></param>
+        /// <returns></returns>
+        protected override string[] GetStreamPath(MaxData loData, string lsDataName)
+        {
+            string[] laR = loData.GetStreamPath();
+            string lsStreamPathLatest = this.GetStreamPath(laR) + "/" + lsDataName;
+            bool lbR = MaxAzureBlobLibrary.StreamExists(
+                        this.AccountName,
+                        this.AccountKey,
+                        this.Container.ToLowerInvariant(),
+                        lsStreamPathLatest);
+            if (!lbR)
+            {
+                for (int lnS = MaxDataModel.StreamPathTypeList.Length - 2; lnS >= 0 && !lbR; lnS--)
+                {
+                    string lsStreamPathType = MaxDataModel.StreamPathTypeList[lnS];
+                    loData.Set("_StreamPathType", lsStreamPathType);
+                    string[] laStreamPath = loData.GetStreamPath();
+                    string lsStreamPath = this.GetStreamPath(laStreamPath) + "/" + lsDataName;
+                    lbR = MaxAzureBlobLibrary.StreamExists(
+                                this.AccountName,
+                                this.AccountKey,
+                                this.Container.ToLowerInvariant(),
+                                lsStreamPath);
+                    if (!lbR)
+                    {
+                        lsStreamPath = this.GetStreamPath(laStreamPath) + "_" + lsDataName;
+                        lbR = MaxAzureBlobLibrary.StreamExists(
+                                    this.AccountName,
+                                    this.AccountKey,
+                                    this.Container.ToLowerInvariant(),
+                                    lsStreamPath);
+                    }
+
+                    if (lbR)
+                    {
+                        //// copy the stream to the latest convention
+                        if (MaxAzureBlobLibrary.StreamCopy(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamPath, this.Container.ToLowerInvariant(), lsStreamPathLatest))
+                        {
+                            //// Delete it from the previous convention
+                            MaxAzureBlobLibrary.StreamDelete(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamPath);
+                        }
+                    }
+                }
+            }
+
+            return laR;
+        }
+
         /// <summary>
         /// Writes stream data to blob storage when it can't be saved in a single field in table storage
         /// https://docs.microsoft.com/en-us/rest/api/storageservices/fileservices/Understanding-the-Table-Service-Data-Model?redirectedfrom=MSDN
@@ -249,14 +313,8 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
                                         lsContentType = MaxConvertLibrary.ConvertToString(typeof(object), loContentType);
                                     }
 
-                                    string[] laStreamPath = loData.GetStreamPath();
-                                    string lsStreamPath = laStreamPath[0];
-                                    for (int lnP = 1; lnP < laStreamPath.Length; lnP++)
-                                    {
-                                        lsStreamPath += "/" + laStreamPath[lnP];
-                                    }
-
-                                    lsStreamPath += "/" + lsDataName;
+                                    string[] laStreamPath = this.GetStreamPath(loData, lsDataName);
+                                    string lsStreamPath = this.GetStreamPath(laStreamPath) + "/" + lsDataName;
                                     int lnTry = 0;
                                     MaxLogLibrary.Log(new MaxLogEntryStructure(this.GetType(), "StreamSave", MaxFactry.Core.MaxEnumGroup.LogDebug, "saving stream {StreamPath}", lsStreamPath));
                                     bool lbIsSuccess = false;
@@ -333,7 +391,7 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
 
             return lnR;
         }
-
+        
         /// <summary>
         /// Opens stream data in storage
         /// </summary>
@@ -344,44 +402,13 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
         {
             System.Diagnostics.Stopwatch loWatch = System.Diagnostics.Stopwatch.StartNew();
             Stream loR = null;
-            string[] laStreamPath = loData.GetStreamPath();
-            string lsStreamPath = laStreamPath[0];
-            for (int lnP = 1; lnP < laStreamPath.Length; lnP++)
-            {
-                lsStreamPath += "/" + laStreamPath[lnP];
-            }
-
-            lsStreamPath += "/" + lsDataName;
+            string[] laStreamPath = this.GetStreamPath(loData, lsDataName);
+            string lsStreamPath = this.GetStreamPath(laStreamPath) + "/" + lsDataName;
             loR = MaxAzureBlobLibrary.StreamOpen(
                         this.AccountName,
                         this.AccountKey,
                         this.Container.ToLowerInvariant(),
                         lsStreamPath);
-
-            //// Check for previous convention for file name
-            if (null == loR)
-            {
-                if (loData.DataModel is MaxIdGuidDataModel)
-                {
-                    MaxIdGuidDataModel loDataModel = (MaxIdGuidDataModel)loData.DataModel;
-                    string lsStreamPathPrevious = MaxAzureBlobLibrary.GetStreamFileName(loData, loData.Get(loDataModel.Id).ToString(), lsDataName);
-                    loR = MaxAzureBlobLibrary.StreamOpen(
-                            this.AccountName,
-                            this.AccountKey,
-                            this.Container.ToLowerInvariant(),
-                            lsStreamPathPrevious);
-                    if (null != loR)
-                    {
-                        //// copy the stream to the new convention
-                        if (MaxAzureBlobLibrary.StreamCopy(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamPathPrevious, this.Container.ToLowerInvariant(), lsStreamPath))
-                        {
-                            //// Delete it from the previous convention
-                            MaxAzureBlobLibrary.StreamDelete(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamPathPrevious);
-                        }
-                    }
-                }
-            }
-
 
             loWatch.Stop();
             if (loWatch.Elapsed.TotalMilliseconds > 1000)
@@ -408,29 +435,11 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
             System.Diagnostics.Stopwatch loWatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
-                string[] laStreamPath = loData.GetStreamPath();
-                string lsStreamPath = laStreamPath[0];
-                for (int lnP = 1; lnP < laStreamPath.Length; lnP++)
-                {
-                    lsStreamPath += "/" + laStreamPath[lnP];
-                }
-
-                lsStreamPath += "/" + lsDataName;
-
+                string[] laStreamPath = this.GetStreamPath(loData, lsDataName);
+                string lsStreamPath = this.GetStreamPath(laStreamPath) + "/" + lsDataName;
                 if (!MaxAzureBlobLibrary.StreamDelete(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamPath))
                 {
                     lnR |= 2;
-                }
-
-                if (loData.DataModel is MaxIdGuidDataModel)
-                {
-                    //// Delete previous convention
-                    MaxIdGuidDataModel loDataModel = (MaxIdGuidDataModel)loData.DataModel;
-                    string lsStreamPathPrevious = MaxAzureBlobLibrary.GetStreamFileName(loData, loData.Get(loDataModel.Id).ToString(), lsDataName);
-                    if (!MaxAzureBlobLibrary.StreamDelete(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamPathPrevious))
-                    {
-                        lnR |= 2;
-                    }
                 }
 
                 loWatch.Stop();
@@ -465,13 +474,8 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
             string lsName = MaxConvertLibrary.ConvertToString(typeof(object), loData.Get(lsKeyName));
             if (!string.IsNullOrEmpty(lsName))
             {
-                string[] laStreamPath = loData.GetStreamPath();
-                string lsStreamPath = laStreamPath[0];
-                for (int lnP = 1; lnP < laStreamPath.Length; lnP++)
-                {
-                    lsStreamPath += "/" + laStreamPath[lnP];
-                }
-
+                string[] laStreamPath = this.GetStreamPath(loData, lsDataName);
+                string lsStreamPath = this.GetStreamPath(laStreamPath);
                 string lsStreamUrl = lsStreamPath + "/" + lsName;
                 lsStreamPath += "/" + lsDataName;
 
@@ -485,24 +489,6 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
                 if (!MaxAzureBlobLibrary.StreamExists(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant() + "-public", lsStreamUrl))
                 {
                     lsR = string.Empty;
-                    if (!MaxAzureBlobLibrary.StreamExists(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamPath))
-                    {
-                        if (loData.DataModel is MaxIdGuidDataModel)
-                        {
-                            MaxIdGuidDataModel loDataModel = (MaxIdGuidDataModel)loData.DataModel;
-                            string lsStreamPathPrevious = MaxAzureBlobLibrary.GetStreamFileName(loData, loData.Get(loDataModel.Id).ToString(), lsDataName);
-                            if (MaxAzureBlobLibrary.StreamExists(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamPathPrevious))
-                            {
-                                //// copy the stream to the new convention
-                                if (MaxAzureBlobLibrary.StreamCopy(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamPathPrevious, this.Container.ToLowerInvariant(), lsStreamPath))
-                                {
-                                    //// Delete it from the previous convention
-                                    MaxAzureBlobLibrary.StreamDelete(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamPathPrevious);
-                                }
-                            }
-                        }
-                    }
-
                     if (MaxAzureBlobLibrary.StreamCopy(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamPath, this.Container.ToLowerInvariant() + "-public", lsStreamUrl))
                     {
                         lsR = string.Format("https://{0}/{1}/{2}", lsBaseUrl, this.Container.ToLowerInvariant() + "-public", lsStreamUrl);

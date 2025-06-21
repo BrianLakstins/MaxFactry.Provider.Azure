@@ -60,6 +60,7 @@
 // <change date="6/4/2025" author="Brian A. Lakstins" description="Update PartitionKey and RowKey to use StorageKey and DataKey.  Fix return value counting records.">
 // <change date="6/12/2025" author="Brian A. Lakstins" description="Update for Application Key">
 // <change date="6/17/2025" author="Brian A. Lakstins" description="Use DefaultPartitionKey when DataModel does not have a storage key">
+// <change date="6/21/2025" author="Brian A. Lakstins" description="Allow querying records based on multiple PartitionKey possibilities">
 // </changelog>
 #endregion Change Log
 
@@ -67,12 +68,11 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
 {
     using System;
     using System.Collections.Generic;
-    using MaxFactry.Core;
     using MaxFactry.Base.DataLayer;
+    using MaxFactry.Core;
     using Microsoft.WindowsAzure.Storage;
     using Microsoft.WindowsAzure.Storage.Auth;
     using Microsoft.WindowsAzure.Storage.Table;
-    using MaxFactry.Base.DataLayer.Library;
 
     /// <summary>
     /// Provides session services using MaxFactryLibrary.
@@ -692,6 +692,13 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
             if (String.IsNullOrEmpty(lsRowKey))
             {
                 lsRowKey = loData.DataModel.GetDataKey(loData);
+                if (string.IsNullOrEmpty(lsRowKey))
+                {
+                    if (loData.DataModel.DataNameKeyList.Length == 0)
+                    {
+                        lsRowKey = lsPartitionKey;
+                    }
+                }
             }
 
             if (string.IsNullOrEmpty(lsRowKey))
@@ -744,6 +751,44 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                     QueryComparisons.Equal,
                     lsPartitionKey);
 
+                string lsStorageKeyFieldName = "StorageKey";
+                if (loData.DataModel.IsStored(lsStorageKeyFieldName) && loData.DataModel.GetAttributeSetting(lsStorageKeyFieldName, MaxDataModel.AttributeIsStorageKey))
+                {
+                    string lsStorageKeyFieldValue = loData.Get(lsStorageKeyFieldName) as string;
+                    if (!string.IsNullOrEmpty(lsStorageKeyFieldValue))
+                    {
+                        string lsStorageKeyFieldFilter = TableQuery.GenerateFilterCondition(
+                            lsStorageKeyFieldName,
+                            QueryComparisons.Equal,
+                            lsStorageKeyFieldValue);
+
+                        lsPartitionKeyFilter = TableQuery.CombineFilters(lsPartitionKeyFilter, TableOperators.Or, lsStorageKeyFieldFilter);
+
+                        string lsStorageKeyPartitionKeyFilter = TableQuery.GenerateFilterCondition(
+                            "PartitionKey",
+                            QueryComparisons.Equal,
+                            lsStorageKeyFieldValue);
+
+                        lsPartitionKeyFilter = TableQuery.CombineFilters(lsPartitionKeyFilter, TableOperators.Or, lsStorageKeyPartitionKeyFilter);
+                        foreach (string lsDataName in loData.DataModel.DataNameList)
+                        {
+                            if (lsDataName != "StorageKey" && loData.DataModel.IsStored(lsDataName) && loData.DataModel.GetAttributeSetting(lsDataName, MaxDataModel.AttributeIsStorageKey))
+                            {
+                                string lsStorageKeyValue = loData.Get(lsDataName) as string;
+                                if (!string.IsNullOrEmpty(lsStorageKeyValue))
+                                {
+                                    string lsStorageKeyFilter = TableQuery.GenerateFilterCondition(
+                                        lsDataName,
+                                        QueryComparisons.Equal,
+                                        lsStorageKeyValue);
+
+                                    lsPartitionKeyFilter = TableQuery.CombineFilters(lsPartitionKeyFilter, TableOperators.And, lsStorageKeyFilter);
+                                }
+                            }
+                        }
+                    }
+                }
+
                 lsQueryFilter = lsPartitionKeyFilter;
             }
 
@@ -773,6 +818,23 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                 else
                 {
                     lsQueryFilter = lsRowKeyFilter;
+                }
+            }
+
+            foreach (string lsDataName in loData.DataModel.DataNameKeyList)
+            {
+                object loValue = loData.Get(lsDataName);
+                if (null != loValue)
+                {
+                    string lsDataKeyQuery = GetFilterCondition(lsDataName, "=", loValue, loData.DataModel);
+                    if (lsQueryFilter.Length > 0)
+                    {
+                        lsQueryFilter = TableQuery.CombineFilters(lsQueryFilter, TableOperators.And, lsDataKeyQuery);
+                    }
+                    else
+                    {
+                        lsQueryFilter = lsDataKeyQuery;
+                    }
                 }
             }
 
