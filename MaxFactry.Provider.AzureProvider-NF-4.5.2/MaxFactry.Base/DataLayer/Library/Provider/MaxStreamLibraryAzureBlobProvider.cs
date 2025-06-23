@@ -244,7 +244,7 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
                             if (MaxAzureBlobLibrary.StreamCopy(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamFile, this.Container.ToLowerInvariant(), lsStreamFileLatest))
                             {
                                 //// Delete it from the previous convention
-                                //MaxAzureBlobLibrary.StreamDelete(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamFile);
+                                MaxAzureBlobLibrary.StreamDelete(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamFile);
                             }
                         }
                     }
