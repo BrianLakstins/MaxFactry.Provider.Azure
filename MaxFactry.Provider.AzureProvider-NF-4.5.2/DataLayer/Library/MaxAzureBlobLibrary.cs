@@ -30,6 +30,7 @@
 // <change date="6/3/2021" author="Brian A. Lakstins" description="Initial creation based on AzureTableLibrary">
 // <change date="10/11/2021" author="Brian A. Lakstins" description="Reduce errors being logged based on existance checking">
 // <change date="3/31/2024" author="Brian A. Lakstins" description="Updated for changes to dependency classes.">
+// <change date="6/24/2025" author="Brian A. Lakstins" description="Remove unused method.  Check for exists before creating.">
 // </changelog>
 #endregion Change Log
 
@@ -57,33 +58,6 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
     /// </summary>
     public class MaxAzureBlobLibrary
     {
-        /// <summary>
-        /// Gets the name of the file
-        /// </summary>
-        /// <param name="loData">Used to access the DataModel</param>
-        /// <param name="lsBase">Type of the DataModel</param>
-        /// <param name="lsKey">Field in the DataModel</param>
-        /// <returns>Name of file stored in AzureStorage BLOB</returns>
-        public static string GetStreamFileName(MaxData loData, string lsBase, string lsKey)
-        {
-            MaxBaseDataModel loBaseDataModel = loData.DataModel as MaxBaseDataModel;
-            string lsStorageKey = string.Empty;
-            if (null != loBaseDataModel)
-            {
-                if (loBaseDataModel.IsStored(loBaseDataModel.StorageKey))
-                {
-                    lsStorageKey = MaxConvertLibrary.ConvertToString(typeof(object), loData.Get(loBaseDataModel.StorageKey));
-                }
-            }
-
-            if (lsKey.Contains("."))
-            {
-                return lsStorageKey + "/" + loData.DataModel.DataStorageName + "/" + lsBase + "/" + lsKey;
-            }
-
-            return lsStorageKey + "/" + loData.DataModel.DataStorageName + "/" + lsBase + "_" + lsKey;
-        }
-
         /// <summary>
         /// Writes stream data to storage.
         /// </summary>
@@ -205,15 +179,18 @@ namespace MaxFactry.Provider.AzureProvider.DataLayer
                 if (loBlockBlob.Exists())
                 {
                     CloudBlobContainer loContainerNew = loBlobClient.GetContainerReference(lsStorageLocationNew.ToLower());
-                    if (loContainerNew.CreateIfNotExists())
+                    if (!loContainerNew.Exists())
                     {
-                        if (lsStorageLocationNew.EndsWith("-public"))
+                        if (loContainerNew.CreateIfNotExists())
                         {
-                            loContainerNew.SetPermissions(new BlobContainerPermissions { PublicAccess = BlobContainerPublicAccessType.Blob });
-                        }
-                        else
-                        {
-                            loContainerNew.SetPermissions(new BlobContainerPermissions { PublicAccess = BlobContainerPublicAccessType.Off });
+                            if (lsStorageLocationNew.EndsWith("-public"))
+                            {
+                                loContainerNew.SetPermissions(new BlobContainerPermissions { PublicAccess = BlobContainerPublicAccessType.Blob });
+                            }
+                            else
+                            {
+                                loContainerNew.SetPermissions(new BlobContainerPermissions { PublicAccess = BlobContainerPublicAccessType.Off });
+                            }
                         }
                     }
 

@@ -32,6 +32,7 @@
 // <change date="5/23/2025" author="Brian A. Lakstins" description="Update to handle one field of one element at a time and send flag based return codes.  Integrate MaxDataStreamAzureBlobLibrary code instead of calling remotely.">
 // <change date="6/21/2025" author="Brian A. Lakstins" description="Update to handle multiple stream paths.">
 // <change date="6/23/2025" author="Brian A. Lakstins" description="Update handling to match default provider.">
+// <change date="6/24/2025" author="Brian A. Lakstins" description="Add logging.">
 // </changelog>
 #endregion
 
@@ -240,9 +241,11 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
 
                         if (lbIsStreamFound)
                         {
+                            MaxLogLibrary.Log(new MaxLogEntryStructure(this.GetType(), "GetStreamPath", MaxFactry.Core.MaxEnumGroup.LogAlert, "Copying stream {StreamFile} to {StreamFileLatest}", lsStreamFile, lsStreamFileLatest));
                             //// copy the stream to the latest convention
                             if (MaxAzureBlobLibrary.StreamCopy(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamFile, this.Container.ToLowerInvariant(), lsStreamFileLatest))
                             {
+                                MaxLogLibrary.Log(new MaxLogEntryStructure(this.GetType(), "GetStreamPath", MaxFactry.Core.MaxEnumGroup.LogAlert, "Deleting stream {StreamFile}", lsStreamFile));
                                 //// Delete it from the previous convention
                                 MaxAzureBlobLibrary.StreamDelete(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamFile);
                             }
@@ -496,6 +499,7 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
                 lsR = string.Format("https://{0}/{1}/{2}", lsBaseUrl, lsPublicContainer, lsStreamUrl);
                 if (!MaxAzureBlobLibrary.StreamExists(this.AccountName, this.AccountKey, lsPublicContainer, lsStreamUrl))
                 {
+                    MaxLogLibrary.Log(new MaxLogEntryStructure(this.GetType(), "GetStreamUrl", MaxFactry.Core.MaxEnumGroup.LogAlert, "Copying stream {StreamFile} to {StreamUrl}", lsStreamFile, lsStreamUrl));
                     if (!MaxAzureBlobLibrary.StreamCopy(this.AccountName, this.AccountKey, this.Container.ToLowerInvariant(), lsStreamFile, lsPublicContainer, lsStreamUrl))
                     {
                         lsR = string.Empty;
