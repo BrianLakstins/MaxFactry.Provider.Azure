@@ -33,6 +33,7 @@
 // <change date="6/21/2025" author="Brian A. Lakstins" description="Update to handle multiple stream paths.">
 // <change date="6/23/2025" author="Brian A. Lakstins" description="Update handling to match default provider.">
 // <change date="6/24/2025" author="Brian A. Lakstins" description="Add logging.">
+// <change date="6/24/2025" author="Brian A. Lakstins" description="Fix issue saving stream.">
 // </changelog>
 #endregion
 
@@ -274,7 +275,7 @@ namespace MaxFactry.Base.DataLayer.Library.Provider
             int lnR = 0;
             System.Diagnostics.Stopwatch loWatch = System.Diagnostics.Stopwatch.StartNew();
             MaxLogLibrary.Log(new MaxLogEntryStructure(this.GetType(), "StreamSave", MaxFactry.Core.MaxEnumGroup.LogDebug, "save stream {Container} for {Key}", this.Container, lsDataName));
-            MaxIdGuidDataModel loDataModel = loData.DataModel as MaxIdGuidDataModel;
+            MaxBaseDataModel loDataModel = loData.DataModel as MaxBaseDataModel;
             if (null != loDataModel)
             {
                 object loValueType = loData.DataModel.GetValueType(lsDataName);
